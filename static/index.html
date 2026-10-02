@@ -5,85 +5,227 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mis Facturas SAT</title>
 <style>
-  :root { --azul:#16324F; --acento:#e8a33d; --gris:#6B7280; --fondo:#F7F8FA; --borde:#E5E7EB; }
-  * { box-sizing:border-box; }
-  body { font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; margin:0; background:var(--fondo); color:#111827; }
-  header { background:var(--azul); color:#fff; padding:18px 24px; }
-  header h1 { margin:0; font-size:20px; }
-  header p { margin:4px 0 0; opacity:.75; font-size:13px; }
-  .kpis { display:flex; gap:12px; padding:16px 24px 0; flex-wrap:wrap; }
-  .kpi { background:#fff; border:1px solid var(--borde); border-radius:10px; padding:12px 18px; min-width:130px; }
-  .kpi .n { font-size:22px; font-weight:700; color:var(--azul); }
-  .kpi .l { font-size:12px; color:var(--gris); }
-  nav.tabs { display:flex; gap:8px; padding:16px 24px 0; }
-  nav.tabs button { border:1px solid var(--borde); background:#fff; border-radius:8px 8px 0 0;
-    padding:10px 18px; cursor:pointer; font-size:14px; border-bottom:none; }
-  nav.tabs button.activo { background:#fff; color:var(--azul); font-weight:700; box-shadow:inset 0 3px 0 var(--acento); }
-  main { background:#fff; border-top:1px solid var(--borde); margin:0 24px 24px; padding:20px;
-    border-radius:0 10px 10px 10px; border:1px solid var(--borde); }
-  section.pestana { display:none; } section.pestana.activo { display:block; }
-  .filtros { display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:14px; }
-  .filtros label { display:flex; flex-direction:column; font-size:12px; color:var(--gris); gap:4px; }
-  .filtros input,.filtros select { padding:8px 10px; border:1px solid var(--borde); border-radius:8px; font-size:14px; }
-  .chips { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
-  .chip { border:1px solid var(--borde); background:#fff; border-radius:999px; padding:7px 16px;
-    cursor:pointer; font-size:13px; }
-  .chip.activo { background:var(--azul); color:#fff; border-color:var(--azul); font-weight:600; }
-  .chip .badge { background:var(--acento); color:#111; border-radius:999px; padding:1px 7px; font-size:11px; margin-left:6px; }
-  table { width:100%; border-collapse:collapse; font-size:13px; }
-  th,td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--borde); }
-  th { color:var(--gris); font-weight:600; font-size:12px; text-transform:uppercase; }
-  tr:hover td { background:#F9FAFB; }
-  .tag { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:600; }
-  .tag.emitida { background:#DBEAFE; color:#1E40AF; }
-  .tag.recibida { background:#EDE9FE; color:#5B21B6; }
-  .tag.nomina { background:#FEF3C7; color:#92400E; }
-  .tag.I { background:#D1FAE5; color:#065F46; } .tag.E { background:#FEE2E2; color:#991B1B; }
-  .tag.N { background:#FEF3C7; color:#92400E; } .tag.P { background:#E0E7FF; color:#3730A3; }
-  .tag.T { background:#F3F4F6; color:#374151; }
-  .monto { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .acciones a,.acciones button { margin-right:8px; font-size:12px; color:var(--azul); background:none;
-    border:none; cursor:pointer; text-decoration:underline; padding:0; }
-  .btn { background:var(--azul); color:#fff; border:none; border-radius:8px; padding:10px 20px;
-    font-size:14px; cursor:pointer; }
-  .btn.secundario { background:#fff; color:var(--azul); border:1px solid var(--azul); }
-  .btn:disabled { opacity:.5; cursor:wait; }
-  .alerta { border-radius:8px; padding:12px 16px; margin:12px 0; font-size:14px; }
-  .alerta.ok { background:#D1FAE5; color:#065F46; } .alerta.error { background:#FEE2E2; color:#991B1B; }
-  .alerta.info { background:#DBEAFE; color:#1E40AF; }
-  .card { border:1px solid var(--borde); border-radius:10px; padding:18px; margin-bottom:16px; }
-  .card h3 { margin:0 0 10px; color:var(--azul); font-size:16px; }
-  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  @media (max-width:800px){ .grid2{grid-template-columns:1fr;} }
-  .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:50;
-    align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
-  .modal.abierto { display:flex; }
-  .modal .caja { background:#fff; border-radius:12px; max-width:760px; width:100%; padding:24px; }
-  .modal h2 { margin:0 0 4px; color:var(--azul); }
-  .kv { display:grid; grid-template-columns:170px 1fr; gap:6px 12px; font-size:13px; margin:12px 0; }
-  .kv dt { color:var(--gris); } .kv dd { margin:0; }
-  .cerrar { float:right; border:none; background:none; font-size:20px; cursor:pointer; }
-  .nomina-box { background:#FFFBEB; border:1px solid #FCD34D; border-radius:8px; padding:14px; margin:12px 0; }
-  .nomina-box h4 { margin:0 0 8px; color:#92400E; }
-  .nota-seg { font-size:12px; color:var(--gris); background:#F9FAFB; border:1px dashed var(--borde);
-    border-radius:8px; padding:10px 14px; margin-top:10px; }
-  .vacio { text-align:center; color:var(--gris); padding:40px 0; }
-  footer { text-align:center; color:var(--gris); font-size:12px; padding:0 0 30px; }
+  /* ============ Sistema de diseño ============ */
+  :root{
+    --azul:#16324F; --azul-osc:#0E2236; --azul-claro:#EAF1F8;
+    --acento:#e8a33d; --acento-osc:#C9821F;
+    --ok:#059669; --ok-bg:#D1FAE5;
+    --err:#DC2626; --err-bg:#FEE2E2;
+    --warn:#B45309; --warn-bg:#FEF3C7;
+    --info:#1D4ED8; --info-bg:#DBEAFE;
+    --gris:#6B7280; --gris-claro:#9CA3AF;
+    --fondo:#F4F6F9; --card:#FFFFFF; --borde:#E3E7EE;
+    --sombra:0 1px 3px rgba(16,32,54,.08), 0 4px 12px rgba(16,32,54,.06);
+    --sombra-lg:0 8px 32px rgba(16,32,54,.18);
+    --radio:12px; --radio-sm:8px;
+    --fuente:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:var(--fuente);margin:0;background:var(--fondo);color:#111827;line-height:1.45}
+
+  /* ============ Header ============ */
+  header.top{background:linear-gradient(135deg,var(--azul-osc),var(--azul));color:#fff;
+    padding:20px 28px;display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;box-shadow:var(--sombra)}
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand .logo{font-size:34px;line-height:1;background:rgba(255,255,255,.12);
+    border-radius:14px;padding:8px 10px}
+  .brand h1{margin:0;font-size:21px;font-weight:700;letter-spacing:.2px}
+  .brand p{margin:3px 0 0;opacity:.72;font-size:13px;max-width:520px}
+  .sesion-badge{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;
+    padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25)}
+  .sesion-badge .punto{width:9px;height:9px;border-radius:50%;background:var(--gris-claro)}
+  .sesion-badge.on{background:rgba(5,150,105,.22);border-color:rgba(52,211,153,.5)}
+  .sesion-badge.on .punto{background:#34D399;box-shadow:0 0 8px #34D399}
+
+  /* ============ KPIs ============ */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;
+    padding:20px 28px 0;max-width:1280px;margin:0 auto}
+  .kpi{background:var(--card);border:1px solid var(--borde);border-radius:var(--radio);
+    padding:14px 18px;box-shadow:var(--sombra);display:flex;gap:12px;align-items:center}
+  .kpi .ico{font-size:26px;background:var(--azul-claro);border-radius:10px;padding:8px 10px;line-height:1}
+  .kpi .n{font-size:21px;font-weight:800;color:var(--azul);font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:12px;color:var(--gris);margin-top:2px}
+
+  /* ============ Tabs ============ */
+  .tabs{display:flex;gap:6px;padding:20px 28px 0;max-width:1280px;margin:0 auto;flex-wrap:wrap}
+  .tabs button{border:1px solid var(--borde);background:var(--card);border-radius:10px 10px 0 0;
+    padding:11px 22px;cursor:pointer;font-size:14px;font-weight:600;color:var(--gris);
+    border-bottom:none;transition:all .15s}
+  .tabs button:hover{color:var(--azul);background:#FBFCFE}
+  .tabs button.activo{background:var(--card);color:var(--azul);box-shadow:inset 0 3px 0 var(--acento)}
+
+  main{background:var(--card);border:1px solid var(--borde);border-radius:0 var(--radio) var(--radio) var(--radio);
+    margin:0 auto 28px;max-width:1280px;padding:24px;box-shadow:var(--sombra)}
+  .wrap{padding:0 28px}
+  section.pestana{display:none} section.pestana.activo{display:block;animation:fade .18s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* ============ Cards / formularios ============ */
+  .card{border:1px solid var(--borde);border-radius:var(--radio);padding:22px;margin-bottom:18px;
+    background:#fff;box-shadow:var(--sombra)}
+  .card h3{margin:0 0 4px;color:var(--azul);font-size:16px;display:flex;align-items:center;gap:8px}
+  .card .sub{color:var(--gris);font-size:13px;margin:0 0 14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .filtros{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .filtros.col{flex-direction:column;align-items:stretch}
+  .filtros label{display:flex;flex-direction:column;font-size:12px;font-weight:600;color:var(--gris);gap:5px}
+  .filtros input,.filtros select{padding:9px 12px;border:1px solid var(--borde);border-radius:var(--radio-sm);
+    font-size:14px;font-family:var(--fuente);background:#fff;min-width:0}
+  .filtros input:focus,.filtros select:focus{outline:2px solid var(--acento);outline-offset:-1px;border-color:var(--acento)}
+  .filtros input[type=file]{padding:7px 10px}
+  .btn{background:var(--azul);color:#fff;border:none;border-radius:var(--radio-sm);padding:10px 22px;
+    font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;font-family:var(--fuente)}
+  .btn:hover{background:var(--azul-osc)}
+  .btn.secundario{background:#fff;color:var(--azul);border:1px solid var(--azul)}
+  .btn.secundario:hover{background:var(--azul-claro)}
+  .btn.acento{background:var(--acento);color:#1a1a1a}
+  .btn.acento:hover{background:var(--acento-osc);color:#fff}
+  .btn:disabled{opacity:.55;cursor:wait}
+  .btn.sm{padding:7px 14px;font-size:13px}
+
+  .atajos{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 4px}
+  .atajos button{border:1px solid var(--borde);background:#F8FAFC;border-radius:999px;padding:6px 14px;
+    font-size:12.5px;cursor:pointer;color:var(--azul);font-weight:600}
+  .atajos button:hover{border-color:var(--acento);background:#FFFBEB}
+  .radios{display:flex;gap:10px;flex-wrap:wrap}
+  .radio-card{border:1px solid var(--borde);border-radius:var(--radio-sm);padding:10px 14px;cursor:pointer;
+    display:flex;gap:10px;align-items:flex-start;font-size:13px}
+  .radio-card input{margin-top:3px;accent-color:var(--azul)}
+  .radio-card.seleccionado{border-color:var(--azul);background:var(--azul-claro)}
+  .radio-card b{display:block;font-size:13.5px}
+  .radio-card span{color:var(--gris);font-size:12px}
+
+  /* ============ Chips ============ */
+  .chips{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .chip{border:1px solid var(--borde);background:#fff;border-radius:999px;padding:8px 18px;
+    cursor:pointer;font-size:13px;font-weight:600;color:var(--gris);transition:all .15s}
+  .chip:hover{border-color:var(--azul);color:var(--azul)}
+  .chip.activo{background:var(--azul);color:#fff;border-color:var(--azul)}
+  .chip .badge{background:var(--acento);color:#1a1a1a;border-radius:999px;padding:1px 8px;font-size:11px;margin-left:6px;font-weight:700}
+
+  /* ============ Tablas ============ */
+  .tabla-scroll{overflow:auto;border:1px solid var(--borde);border-radius:var(--radio);max-height:560px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff}
+  thead th{position:sticky;top:0;background:#F1F5F9;color:var(--azul);font-weight:700;font-size:11.5px;
+    text-transform:uppercase;letter-spacing:.4px;text-align:left;padding:11px 12px;border-bottom:1px solid var(--borde);z-index:2}
+  td{padding:10px 12px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+  tbody tr:hover td{background:#F8FAFC}
+  tbody tr:last-child td{border-bottom:none}
+  .monto{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+  .mono{font-family:var(--mono);font-size:12px}
+  .acciones{white-space:nowrap}
+  .acciones a,.acciones button{margin-right:10px;font-size:12.5px;color:var(--azul);background:none;border:none;
+    cursor:pointer;text-decoration:underline;padding:0;font-weight:600}
+  .acciones button:disabled{color:var(--gris-claro);text-decoration:none;cursor:wait}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:999px;
+    font-size:11.5px;font-weight:700;white-space:nowrap}
+  .badge.emitida{background:#DBEAFE;color:#1E40AF}
+  .badge.recibida{background:#EDE9FE;color:#5B21B6}
+  .badge.nomina{background:var(--warn-bg);color:var(--warn)}
+  .badge.I{background:var(--ok-bg);color:#065F46}.badge.E{background:var(--err-bg);color:#991B1B}
+  .badge.N{background:var(--warn-bg);color:#92400E}.badge.P{background:#E0E7FF;color:#3730A3}
+  .badge.T{background:#F3F4F6;color:#374151}
+  .badge.ok{background:var(--ok-bg);color:#065F46}
+  .badge.err{background:var(--err-bg);color:#991B1B}
+  .badge.info{background:var(--info-bg);color:var(--info)}
+  .badge.gris{background:#F3F4F6;color:#4B5563}
+  .badge.proc{background:var(--info-bg);color:var(--info)}
+  .badge.proc::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--info);animation:pulso 1.1s infinite}
+  @keyframes pulso{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+  .cod{font-family:var(--mono);font-size:11px;background:#F3F4F6;border-radius:6px;padding:2px 7px;color:#4B5563}
+  .motivo{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:var(--gris)}
+
+  /* ============ Paginación ============ */
+  .paginacion{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}
+  .paginacion .info{font-size:13px;color:var(--gris)}
+
+  /* ============ Alertas / toasts / vacíos / skeletons ============ */
+  .alerta{border-radius:var(--radio-sm);padding:12px 16px;margin:12px 0;font-size:14px;border:1px solid transparent}
+  .alerta.ok{background:var(--ok-bg);color:#065F46;border-color:#A7F3D0}
+  .alerta.error{background:var(--err-bg);color:#991B1B;border-color:#FECACA}
+  .alerta.info{background:var(--info-bg);color:var(--info);border-color:#BFDBFE}
+  .alerta.warn{background:var(--warn-bg);color:#92400E;border-color:#FDE68A}
+  #toasts{position:fixed;top:18px;right:18px;z-index:200;display:flex;flex-direction:column;gap:10px;max-width:min(380px,90vw)}
+  .toast{background:#111827;color:#F9FAFB;border-radius:10px;padding:13px 18px;font-size:13.5px;
+    box-shadow:var(--sombra-lg);animation:slidein .22s ease;border-left:4px solid var(--gris-claro)}
+  .toast.ok{border-left-color:var(--ok)} .toast.error{border-left-color:var(--err)}
+  .toast.warn{border-left-color:var(--acento)} .toast.info{border-left-color:var(--info)}
+  @keyframes slidein{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+  .toast.salir{opacity:0;transform:translateX(24px);transition:all .25s}
+  .vacio{text-align:center;color:var(--gris);padding:48px 16px}
+  .vacio .ico{font-size:44px;display:block;margin-bottom:10px;opacity:.6}
+  .vacio b{color:var(--azul);display:block;font-size:15px;margin-bottom:4px}
+  .skel{border-radius:6px;background:linear-gradient(90deg,#EDF1F6 25%,#F8FAFC 50%,#EDF1F6 75%);
+    background-size:200% 100%;animation:shimmer 1.2s infinite;height:16px}
+  @keyframes shimmer{to{background-position:-200% 0}}
+  .spinner{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.4);
+    border-top-color:#fff;border-radius:50%;animation:girar .7s linear infinite;vertical-align:-3px;margin-right:8px}
+  .spinner.oscuro{border-color:#CBD5E1;border-top-color:var(--azul)}
+  @keyframes girar{to{transform:rotate(360deg)}}
+
+  /* ============ Drawer lateral ============ */
+  .drawer-fondo{display:none;position:fixed;inset:0;background:rgba(10,20,35,.5);z-index:90}
+  .drawer-fondo.abierto{display:block;animation:fade .2s}
+  .drawer{position:fixed;top:0;right:0;bottom:0;width:min(620px,96vw);background:#fff;z-index:100;
+    box-shadow:var(--sombra-lg);transform:translateX(105%);transition:transform .25s ease;
+    display:flex;flex-direction:column}
+  .drawer.abierto{transform:none}
+  .drawer-head{padding:18px 24px;border-bottom:1px solid var(--borde);display:flex;align-items:flex-start;gap:12px}
+  .drawer-head h2{margin:0;font-size:17px;color:var(--azul)}
+  .drawer-head .uuid{font-family:var(--mono);font-size:11.5px;color:var(--gris);margin-top:4px;word-break:break-all}
+  .drawer-body{padding:20px 24px;overflow-y:auto;flex:1}
+  .drawer-foot{padding:14px 24px;border-top:1px solid var(--borde);display:flex;gap:10px}
+  .cerrar{margin-left:auto;border:none;background:#F1F5F9;border-radius:8px;font-size:18px;cursor:pointer;
+    width:34px;height:34px;flex-shrink:0}
+  .cerrar:hover{background:#E2E8F0}
+  .kv{display:grid;grid-template-columns:160px 1fr;gap:7px 14px;font-size:13.5px;margin:14px 0}
+  .kv dt{color:var(--gris)} .kv dd{margin:0;word-break:break-word}
+  .sec-titulo{font-size:13px;font-weight:700;color:var(--azul);text-transform:uppercase;letter-spacing:.4px;
+    margin:20px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--azul-claro)}
+  .nomina-box{background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--radio-sm);padding:16px;margin:12px 0}
+  .nomina-box h4{margin:0 0 10px;color:#92400E;font-size:14px}
+  .nota-seg{font-size:12px;color:var(--gris);background:#F9FAFB;border:1px dashed var(--borde);
+    border-radius:var(--radio-sm);padding:10px 14px;margin-top:12px}
+  .copy-btn{border:1px solid var(--borde);background:#fff;border-radius:6px;font-size:11px;cursor:pointer;
+    padding:2px 8px;margin-left:8px;color:var(--azul);font-weight:600}
+  .copy-btn:hover{background:var(--azul-claro)}
+
+  footer{text-align:center;color:var(--gris-claro);font-size:12px;padding:0 0 34px}
+
+  @media (max-width:900px){
+    .grid2{grid-template-columns:1fr}
+    header.top,.kpis,.tabs{padding-left:16px;padding-right:16px}
+    .wrap{padding:0 12px}
+    main{padding:16px;margin-bottom:20px}
+    .kv{grid-template-columns:120px 1fr}
+    .filtros label{flex:1 1 45%}
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>🧾 Mis Facturas SAT</h1>
-  <p>Tus CFDI emitidos y recibidos —incluidas nóminas— en tu propia computadora. Nada sale de aquí.</p>
+<header class="top">
+  <div class="brand">
+    <div class="logo">🧾</div>
+    <div>
+      <h1>Mis Facturas SAT</h1>
+      <p>Tus CFDI emitidos y recibidos —incluidas nóminas— en tu propia computadora. Nada sale de aquí.</p>
+    </div>
+  </div>
+  <span class="sesion-badge" id="sesion-badge"><span class="punto"></span><span id="sesion-badge-txt">Sin e.firma</span></span>
 </header>
 
 <div class="kpis" id="kpis"></div>
 
+<div class="wrap">
 <nav class="tabs">
-  <button class="activo" data-tab="facturas">Facturas</button>
-  <button data-tab="descarga">Descarga SAT</button>
-  <button data-tab="importar">Importar XML</button>
-  <button data-tab="solicitudes">Solicitudes</button>
+  <button class="activo" data-tab="facturas">📄 Facturas</button>
+  <button data-tab="descarga">⬇ Descarga SAT</button>
+  <button data-tab="importar">📥 Importar XML</button>
+  <button data-tab="solicitudes">📋 Solicitudes <span class="badge proc" id="badge-activas" style="display:none"></span></button>
 </nav>
 
 <main>
@@ -95,64 +237,113 @@
       <button class="chip" data-f="recibida">Recibidas</button>
       <button class="chip" data-f="nomina">🧾 Nómina <span class="badge" id="badge-nominas"></span></button>
     </div>
-    <div class="filtros">
-      <label>Tipo comprobante
-        <select id="f-tipo">
-          <option value="">Todos</option>
-          <option value="I">Ingreso</option>
-          <option value="E">Egreso</option>
-          <option value="N">Nómina</option>
-          <option value="P">Pago</option>
-          <option value="T">Traslado</option>
-        </select>
-      </label>
-      <label>Desde <input type="date" id="f-desde"></label>
-      <label>Hasta <input type="date" id="f-hasta"></label>
-      <label>RFC (emisor o receptor) <input type="text" id="f-rfc" placeholder="AAA010101AAA"></label>
-      <label>Búsqueda libre <input type="text" id="f-texto" placeholder="nombre, folio, UUID…"></label>
-      <label>Monto mín. <input type="number" id="f-min" step="0.01" placeholder="0.00"></label>
-      <label>Monto máx. <input type="number" id="f-max" step="0.01" placeholder="0.00"></label>
-      <button class="btn" onclick="cargarFacturas()">Filtrar</button>
-      <button class="btn secundario" onclick="limpiarFiltros()">Limpiar</button>
-      <button class="btn secundario" onclick="exportarZip()">⬇ ZIP de XML</button>
+    <div class="card" style="margin-bottom:14px">
+      <div class="filtros">
+        <label>Tipo comprobante
+          <select id="f-tipo">
+            <option value="">Todos</option>
+            <option value="I">Ingreso</option>
+            <option value="E">Egreso</option>
+            <option value="N">Nómina</option>
+            <option value="P">Pago</option>
+            <option value="T">Traslado</option>
+          </select>
+        </label>
+        <label>Desde <input type="date" id="f-desde"></label>
+        <label>Hasta <input type="date" id="f-hasta"></label>
+        <label>RFC (emisor o receptor) <input type="text" id="f-rfc" placeholder="AAA010101AAA" style="text-transform:uppercase"></label>
+        <label>Búsqueda libre <input type="text" id="f-texto" placeholder="nombre, folio, UUID…"></label>
+        <label>Monto mín. <input type="number" id="f-min" step="0.01" min="0" placeholder="0.00"></label>
+        <label>Monto máx. <input type="number" id="f-max" step="0.01" min="0" placeholder="0.00"></label>
+        <button class="btn" onclick="aplicarFiltros()">Filtrar</button>
+        <button class="btn secundario" onclick="limpiarFiltros()">Limpiar</button>
+        <button class="btn secundario" onclick="exportarZip()">⬇ ZIP de XML</button>
+      </div>
     </div>
     <div id="lista"></div>
+    <div class="paginacion" id="paginacion" style="display:none">
+      <span class="info" id="pag-info"></span>
+      <div style="display:flex;gap:8px">
+        <button class="btn secundario sm" id="pag-ant" onclick="cambiarPagina(-1)">← Anterior</button>
+        <button class="btn secundario sm" id="pag-sig" onclick="cambiarPagina(1)">Siguiente →</button>
+      </div>
+    </div>
   </section>
 
   <!-- ============ DESCARGA SAT ============ -->
   <section id="tab-descarga" class="pestana">
     <div class="grid2">
       <div class="card">
-        <h3>1. Carga tu e.firma</h3>
+        <h3>🔑 1. Carga tu e.firma</h3>
+        <p class="sub">El SAT exige e.firma para la descarga masiva (no basta la contraseña del portal).</p>
         <div id="estado-sesion" class="alerta info">Sin sesión: carga tu e.firma para descargar del SAT.</div>
-        <div class="filtros" style="flex-direction:column;align-items:stretch">
+        <div class="filtros col">
           <label>Archivo .cer <input type="file" id="s-cer" accept=".cer"></label>
           <label>Archivo .key <input type="file" id="s-key" accept=".key"></label>
-          <label>Contraseña de la e.firma <input type="password" id="s-pass"></label>
-          <label>Tu RFC <input type="text" id="s-rfc" placeholder="ABCD123456XYZ"></label>
+          <label>Contraseña de la e.firma <input type="password" id="s-pass" autocomplete="off"></label>
+          <label>Tu RFC <input type="text" id="s-rfc" placeholder="ABCD123456XYZ" style="text-transform:uppercase"></label>
         </div>
-        <button class="btn" onclick="crearSesion()">Cargar e.firma</button>
-        <button class="btn secundario" onclick="cerrarSesion()">Cerrar sesión</button>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn" id="btn-sesion" onclick="crearSesion()">Cargar e.firma</button>
+          <button class="btn secundario" onclick="cerrarSesion()">Cerrar sesión</button>
+        </div>
         <div class="nota-seg">🔒 Tu .cer, .key y contraseña <b>nunca</b> se guardan en disco ni se suben a ningún
         servidor: viven solo en la memoria de esta app y se borran a los 30 minutos sin uso o al cerrar sesión.</div>
       </div>
-      <div class="card">
-        <h3>2. Solicita la descarga masiva</h3>
-        <div class="filtros" style="flex-direction:column;align-items:stretch">
-          <label>Tipo
-            <select id="d-tipo">
-              <option value="ambas">Emitidas y recibidas</option>
-              <option value="emitidas">Solo emitidas</option>
-              <option value="recibidas">Solo recibidas</option>
-            </select>
-          </label>
-          <label>Fecha inicio <input type="date" id="d-desde"></label>
-          <label>Fecha fin <input type="date" id="d-hasta"></label>
+
+      <div>
+        <div class="card">
+          <h3>📦 2. Descarga masiva por periodo</h3>
+          <p class="sub">Pide al SAT un paquete con tus comprobantes de un rango de fechas.</p>
+          <div class="filtros col">
+            <label>Tipo
+              <select id="d-tipo" onchange="actualizarEtiquetaContraparte()">
+                <option value="ambas">Emitidas y recibidas</option>
+                <option value="emitidas">Solo emitidas</option>
+                <option value="recibidas">Solo recibidas</option>
+              </select>
+            </label>
+            <label>Tipo de descarga
+              <div class="radios" style="margin-top:2px">
+                <label class="radio-card seleccionado"><input type="radio" name="d-td" value="CFDI" checked onchange="marcarRadio(this)">
+                  <span><b>CFDI (XML)</b><span>Comprobantes completos para ver, filtrar y generar PDF.</span></span></label>
+                <label class="radio-card"><input type="radio" name="d-td" value="Metadata" onchange="marcarRadio(this)">
+                  <span><b>Metadata</b><span>Listado ligero de datos básicos. Incluye cancelados; no trae XML.</span></span></label>
+              </div>
+            </label>
+            <label>Rango rápido
+              <div class="atajos">
+                <button type="button" onclick="rangoRapido('7d')">Últimos 7 días</button>
+                <button type="button" onclick="rangoRapido('30d')">Últimos 30 días</button>
+                <button type="button" onclick="rangoRapido('mes')">Este mes</button>
+                <button type="button" onclick="rangoRapido('anio')">Este año</button>
+              </div>
+            </label>
+            <div class="filtros" style="gap:10px">
+              <label style="flex:1">Fecha inicio <input type="date" id="d-desde" style="width:100%"></label>
+              <label style="flex:1">Fecha fin <input type="date" id="d-hasta" style="width:100%"></label>
+            </div>
+            <label><span id="d-contraparte-label">Filtrar por RFC de contraparte (opcional)</span>
+              <input type="text" id="d-contraparte" placeholder="AAA010101AAA" style="text-transform:uppercase">
+            </label>
+          </div>
+          <button class="btn" id="btn-descarga" onclick="solicitarDescarga()" style="margin-top:12px">Solicitar al SAT</button>
+          <div id="msg-descarga"></div>
+          <div class="nota-seg">El SAT tarda de minutos a horas en preparar los paquetes. Las nóminas
+          (TipoDeComprobante "N") vienen incluidas en la misma descarga.</div>
         </div>
-        <button class="btn" onclick="solicitarDescarga()">Solicitar al SAT</button>
-        <div id="msg-descarga"></div>
-        <div class="nota-seg">El SAT exige e.firma (no basta la contraseña) y tarda de minutos a horas en
-        preparar los paquetes. Las nóminas (TipoDeComprobante "N") vienen incluidas en la misma descarga.</div>
+
+        <div class="card">
+          <h3>🔎 3. Buscar por folio fiscal (UUID)</h3>
+          <p class="sub">¿Necesitas un comprobante específico? Pídelo directo con su UUID.</p>
+          <div class="filtros">
+            <label style="flex:1">Folio fiscal (UUID)
+              <input type="text" id="u-folio" class="mono" placeholder="123e4567-e89b-12d3-a456-426614174000" style="width:100%">
+            </label>
+            <button class="btn" id="btn-uuid" onclick="solicitarUUID()">Buscar</button>
+          </div>
+          <div id="msg-uuid"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -160,8 +351,8 @@
   <!-- ============ IMPORTAR ============ -->
   <section id="tab-importar" class="pestana">
     <div class="card">
-      <h3>Importar XMLs manualmente</h3>
-      <p style="color:var(--gris);font-size:14px">¿Aún no conectas tu e.firma? Descarga tus XML del portal del SAT
+      <h3>📥 Importar XMLs manualmente</h3>
+      <p class="sub">¿Aún no conectas tu e.firma? Descarga tus XML del portal del SAT
       (<i>Factura electrónica → Cancela y recupera tus facturas</i>) y súbelos aquí. La app los parsea y los guarda igual.</p>
       <div class="filtros">
         <label>Estos XML son
@@ -171,7 +362,7 @@
           </select>
         </label>
         <label>Archivos XML <input type="file" id="i-archivos" accept=".xml" multiple></label>
-        <button class="btn" onclick="importarXmls()">Importar</button>
+        <button class="btn" id="btn-importar" onclick="importarXmls()">Importar</button>
       </div>
       <div id="msg-importar"></div>
     </div>
@@ -179,56 +370,135 @@
 
   <!-- ============ SOLICITUDES ============ -->
   <section id="tab-solicitudes" class="pestana">
-    <button class="btn secundario" onclick="cargarSolicitudes()">↻ Actualizar</button>
-    <div id="lista-sol" style="margin-top:12px"></div>
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button class="btn secundario sm" onclick="cargarSolicitudes()">↻ Actualizar</button>
+        <span style="font-size:13px;color:var(--gris)" id="poll-info">Las solicitudes en proceso se revisan solas cada 3 segundos.</span>
+      </div>
+    </div>
+    <div id="lista-sol"></div>
   </section>
 </main>
+</div>
 
-<div class="modal" id="modal"><div class="caja" id="modal-caja"></div></div>
+<!-- Drawer de detalle -->
+<div class="drawer-fondo" id="drawer-fondo" onclick="cerrarDrawer()"></div>
+<aside class="drawer" id="drawer" aria-label="Detalle de factura">
+  <div class="drawer-head">
+    <div style="flex:1;min-width:0">
+      <h2 id="drawer-titulo">Factura</h2>
+      <div class="uuid"><span id="drawer-uuid"></span><button class="copy-btn" onclick="copiarUUID()">Copiar</button></div>
+    </div>
+    <button class="cerrar" onclick="cerrarDrawer()" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+  <div class="drawer-foot" id="drawer-foot"></div>
+</aside>
+
+<div id="toasts"></div>
 
 <footer>Representación impresa generada localmente · El documento con validez fiscal es el XML · Hecho para Adrián</footer>
-
 <script>
+/* ================= Estado global ================= */
 let tokenSesion = null;   // token de e.firma: solo vive en esta pestaña del navegador
+let rfcSesion = null;
 let chipActual = 'todas';
+let paginaActual = 1, totalFacturas = 0;
+const PAGE_SIZE = 50;
+const ESTADOS_ACTIVOS = ['en_proceso', 'aceptada'];
+const ESTADOS_TERMINALES = ['terminada', 'lista', 'rechazada', 'error', 'vencida'];
+let pollTimer = null, uuidActual = null;
 
 const $ = id => document.getElementById(id);
 const fmt$ = n => n == null ? '—' : '$' + Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtF = f => f ? f.slice(0,19).replace('T',' ') : '—';
+const fmtF = f => f ? String(f).slice(0,19).replace('T',' ') : '—';
 const TIPO_TXT = {I:'Ingreso',E:'Egreso',N:'Nómina',P:'Pago',T:'Traslado'};
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('nav.tabs button').forEach(x => x.classList.remove('activo'));
-  document.querySelectorAll('section.pestana').forEach(x => x.classList.remove('activo'));
-  b.classList.add('activo'); $('tab-'+b.dataset.tab).classList.add('activo');
-  if (b.dataset.tab === 'solicitudes') cargarSolicitudes();
-});
-document.querySelectorAll('#chips .chip').forEach(c => c.onclick = () => {
-  document.querySelectorAll('#chips .chip').forEach(x => x.classList.remove('activo'));
-  c.classList.add('activo'); chipActual = c.dataset.f; cargarFacturas();
-});
-
+/* ================= Utilidades ================= */
 async function api(url, opts={}) {
-  const r = await fetch(url, opts);
+  let r;
+  try { r = await fetch(url, opts); }
+  catch(e) { throw new Error('No se pudo conectar con la app local. ¿Sigue corriendo uvicorn?'); }
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data.error || ('Error ' + r.status));
+  if (!r.ok) {
+    const err = new Error(data.error || ('Error ' + r.status));
+    if (r.status === 401 && !url.includes('/api/sesion')) {
+      err.sesionExpirada = true;
+      marcarSesionExpirada();
+    }
+    throw err;
+  }
   return data;
 }
 function authHeaders() { return tokenSesion ? {Authorization:'Bearer '+tokenSesion} : {}; }
 
-// ---------- KPIs ----------
-async function cargarResumen() {
-  const r = await api('/api/resumen');
-  $('kpis').innerHTML = `
-    <div class="kpi"><div class="n">${r.total}</div><div class="l">facturas guardadas</div></div>
-    <div class="kpi"><div class="n">${r.emitidas}</div><div class="l">emitidas</div></div>
-    <div class="kpi"><div class="n">${r.recibidas}</div><div class="l">recibidas</div></div>
-    <div class="kpi"><div class="n">${r.nominas}</div><div class="l">nóminas</div></div>
-    <div class="kpi"><div class="n">${fmt$(r.monto_total)}</div><div class="l">monto acumulado</div></div>`;
-  $('badge-nominas').textContent = r.nominas || '';
+function toast(msg, tipo='info', ms=4500) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + tipo;
+  t.innerHTML = msg;
+  $('toasts').appendChild(t);
+  setTimeout(() => { t.classList.add('salir'); setTimeout(() => t.remove(), 300); }, ms);
 }
 
-// ---------- Lista ----------
+function marcarSesionExpirada() {
+  tokenSesion = null; rfcSesion = null;
+  actualizarBadgeSesion();
+  const e = $('estado-sesion');
+  if (e) { e.className = 'alerta warn'; e.textContent = '⚠️ Tu sesión de e.firma expiró. Vuelve a cargarla para seguir usando el SAT.'; }
+}
+
+function actualizarBadgeSesion() {
+  const b = $('sesion-badge'), txt = $('sesion-badge-txt');
+  if (tokenSesion && rfcSesion) {
+    b.classList.add('on');
+    txt.textContent = 'e.firma · ' + rfcSesion;
+  } else {
+    b.classList.remove('on');
+    txt.textContent = 'Sin e.firma';
+  }
+}
+
+/* ================= Tabs ================= */
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => cambiarTab(b.dataset.tab));
+function cambiarTab(nombre) {
+  document.querySelectorAll('nav.tabs button').forEach(x => x.classList.remove('activo'));
+  document.querySelectorAll('section.pestana').forEach(x => x.classList.remove('activo'));
+  document.querySelector(`nav.tabs button[data-tab="${nombre}"]`).classList.add('activo');
+  $('tab-'+nombre).classList.add('activo');
+  if (nombre === 'solicitudes') cargarSolicitudes();
+  else detenerPolling();
+}
+document.querySelectorAll('#chips .chip').forEach(c => c.onclick = () => {
+  document.querySelectorAll('#chips .chip').forEach(x => x.classList.remove('activo'));
+  c.classList.add('activo'); chipActual = c.dataset.f; paginaActual = 1; cargarFacturas();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) detenerPolling();
+  else if (tabActivo() === 'solicitudes') cargarSolicitudes();
+});
+function tabActivo() {
+  const b = document.querySelector('nav.tabs button.activo');
+  return b ? b.dataset.tab : null;
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarDrawer(); });
+
+/* ================= KPIs ================= */
+async function cargarResumen() {
+  try {
+    const r = await api('/api/resumen');
+    const kpi = (ico,n,l) => `<div class="kpi"><div class="ico">${ico}</div><div><div class="n">${n}</div><div class="l">${l}</div></div></div>`;
+    $('kpis').innerHTML =
+      kpi('🧾', r.total, 'facturas guardadas') +
+      kpi('📤', r.emitidas, 'emitidas') +
+      kpi('📥', r.recibidas, 'recibidas') +
+      kpi('💼', r.nominas, 'nóminas') +
+      kpi('💰', fmt$(r.monto_total), 'monto acumulado');
+    $('badge-nominas').textContent = r.nominas || '';
+  } catch(e) { /* la app aún no responde; se reintenta al interactuar */ }
+}
+
+/* ================= Facturas: lista + paginación ================= */
 function filtrosQuery() {
   const p = new URLSearchParams();
   if (chipActual === 'emitida' || chipActual === 'recibida') p.set('tipo_flujo', chipActual);
@@ -236,176 +506,441 @@ function filtrosQuery() {
   if ($('f-tipo').value) p.set('tipo_comprobante', $('f-tipo').value);
   if ($('f-desde').value) p.set('fecha_inicio', $('f-desde').value);
   if ($('f-hasta').value) p.set('fecha_fin', $('f-hasta').value);
-  if ($('f-rfc').value.trim()) p.set('rfc', $('f-rfc').value.trim());
+  if ($('f-rfc').value.trim()) p.set('rfc', $('f-rfc').value.trim().toUpperCase());
   if ($('f-texto').value.trim()) p.set('texto', $('f-texto').value.trim());
   if ($('f-min').value) p.set('min_total', $('f-min').value);
   if ($('f-max').value) p.set('max_total', $('f-max').value);
+  p.set('limit', PAGE_SIZE);
+  p.set('offset', (paginaActual-1)*PAGE_SIZE);
   return p.toString();
 }
 
-async function cargarFacturas() {
-  const d = await api('/api/facturas?' + filtrosQuery());
-  if (!d.facturas.length) { $('lista').innerHTML = '<div class="vacio">Sin facturas. Importa XMLs o solicita la descarga al SAT.</div>'; return; }
-  const filas = d.facturas.map(f => {
-    const contraparte = f.tipo_flujo === 'emitida'
-      ? (f.receptor_nombre || f.receptor_rfc) : (f.emisor_nombre || f.emisor_rfc);
-    const esNomina = f.tipo_comprobante === 'N';
-    return `<tr>
-      <td>${fmtF(f.fecha)}</td>
-      <td><span class="tag ${f.tipo_flujo}">${f.tipo_flujo}</span></td>
-      <td><span class="tag ${f.tipo_comprobante} ${esNomina?'nomina':''}">${TIPO_TXT[f.tipo_comprobante]||f.tipo_comprobante||'—'}</span></td>
-      <td>${contraparte || '—'}</td>
-      <td>${(f.serie||'')+(f.folio||'') || '—'}</td>
-      <td class="monto">${fmt$(esNomina ? f.nomina_neto : f.total)}</td>
-      <td class="acciones">
-        <button onclick="verDetalle('${f.uuid}')">Ver</button>
-        <a href="/api/facturas/${f.uuid}/xml">XML</a>
-        <a href="/api/facturas/${f.uuid}/pdf" target="_blank">PDF</a>
-      </td></tr>`;
-  }).join('');
-  $('lista').innerHTML = `<p style="color:var(--gris);font-size:13px">${d.total} factura(s)</p>
-    <table><thead><tr><th>Fecha</th><th>Flujo</th><th>Tipo</th><th>Contraparte</th><th>Folio</th>
-    <th style="text-align:right">Total</th><th>Acciones</th></tr></thead><tbody>${filas}</tbody></table>`;
+function skeletonTabla() {
+  const filas = Array.from({length:6}, () =>
+    `<tr>${'<td><div class="skel"></div></td>'.repeat(7)}</tr>`).join('');
+  $('lista').innerHTML = `<div class="tabla-scroll"><table><thead><tr>
+    <th>Fecha</th><th>Flujo</th><th>Tipo</th><th>Contraparte</th><th>Folio</th>
+    <th style="text-align:right">Total</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>`;
 }
 
+async function cargarFacturas() {
+  skeletonTabla();
+  try {
+    const d = await api('/api/facturas?' + filtrosQuery());
+    totalFacturas = d.total;
+    if (!d.facturas.length) {
+      $('lista').innerHTML = `<div class="vacio"><span class="ico">📭</span>
+        <b>Aún no hay facturas con esos filtros</b>
+        Importa XMLs en la pestaña "Importar XML" o pide tu descarga masiva al SAT.</div>`;
+      $('paginacion').style.display = 'none';
+      return;
+    }
+    const filas = d.facturas.map(f => {
+      const contraparte = f.tipo_flujo === 'emitida'
+        ? (f.receptor_nombre || f.receptor_rfc) : (f.emisor_nombre || f.emisor_rfc);
+      const esNomina = f.tipo_comprobante === 'N';
+      const monto = esNomina ? (f.nomina_neto ?? f.total) : f.total;
+      return `<tr>
+        <td style="white-space:nowrap">${fmtF(f.fecha)}</td>
+        <td><span class="badge ${f.tipo_flujo}">${f.tipo_flujo}</span></td>
+        <td><span class="badge ${f.tipo_comprobante}">${TIPO_TXT[f.tipo_comprobante]||f.tipo_comprobante||'—'}</span></td>
+        <td>${esc(contraparte) || '—'}</td>
+        <td>${esc((f.serie||'')+(f.folio||'')) || '—'}</td>
+        <td class="monto">${fmt$(monto)}</td>
+        <td class="acciones">
+          <button onclick="verDetalle('${f.uuid}')">Ver</button>
+          <a href="/api/facturas/${f.uuid}/xml">XML</a>
+          <a href="/api/facturas/${f.uuid}/pdf" target="_blank">PDF</a>
+        </td></tr>`;
+    }).join('');
+    $('lista').innerHTML = `<div class="tabla-scroll"><table><thead><tr>
+      <th>Fecha</th><th>Flujo</th><th>Tipo</th><th>Contraparte</th><th>Folio</th>
+      <th style="text-align:right">Total</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>`;
+    actualizarPaginacion();
+  } catch(e) {
+    $('lista').innerHTML = `<div class="vacio"><span class="ico">⚠️</span><b>No se pudo cargar</b>${esc(e.message)}</div>`;
+    $('paginacion').style.display = 'none';
+  }
+}
+
+function actualizarPaginacion() {
+  const pag = $('paginacion');
+  if (totalFacturas <= PAGE_SIZE) { pag.style.display = 'none'; return; }
+  pag.style.display = 'flex';
+  const ini = (paginaActual-1)*PAGE_SIZE + 1;
+  const fin = Math.min(paginaActual*PAGE_SIZE, totalFacturas);
+  $('pag-info').textContent = `Mostrando ${ini}–${fin} de ${totalFacturas}`;
+  $('pag-ant').disabled = paginaActual <= 1;
+  $('pag-sig').disabled = fin >= totalFacturas;
+}
+function cambiarPagina(dir) { paginaActual += dir; cargarFacturas(); }
+function aplicarFiltros() { paginaActual = 1; cargarFacturas(); }
 function limpiarFiltros() {
   ['f-tipo','f-desde','f-hasta','f-rfc','f-texto','f-min','f-max'].forEach(id => $(id).value='');
-  cargarFacturas();
+  paginaActual = 1; cargarFacturas(); toast('Filtros limpios', 'info', 2000);
 }
-
 function exportarZip() { window.open('/api/exportar-zip?' + filtrosQuery(), '_blank'); }
 
-// ---------- Detalle ----------
+/* ================= Drawer de detalle ================= */
 async function verDetalle(uuid) {
-  const f = await api('/api/facturas/' + uuid);
-  const esNomina = f.tipo_comprobante === 'N';
-  let nominaHtml = '';
-  if (esNomina) {
-    nominaHtml = `<div class="nomina-box"><h4>🧾 Datos de nómina</h4>
-      <dl class="kv">
-        <dt>Fecha de pago</dt><dd>${f.nomina_fecha_pago || '—'}</dd>
-        <dt>Días pagados</dt><dd>${f.nomina_dias_pagados ?? '—'}</dd>
-        <dt>Total percepciones</dt><dd>${fmt$(f.nomina_total_percepciones)}</dd>
-        <dt>Total deducciones</dt><dd>${fmt$(f.nomina_total_deducciones)}</dd>
-        <dt><b>Neto pagado</b></dt><dd><b>${fmt$(f.nomina_neto)}</b></dd>
-      </dl></div>`;
-  }
-  const conceptos = (f.conceptos||[]).map(c =>
-    `<tr><td>${c.descripcion||'—'}</td><td>${c.cantidad??'—'}</td><td class="monto">${fmt$(c.valor_unitario)}</td><td class="monto">${fmt$(c.importe)}</td></tr>`).join('')
-    || '<tr><td colspan="4">Sin conceptos</td></tr>';
-  const imps = (f.impuestos||[]).map(i =>
-    `<tr><td>${i.tipo}</td><td>${i.impuesto||'—'}</td><td>${i.tasa??'—'}</td><td class="monto">${fmt$(i.importe)}</td></tr>`).join('');
-  $('modal-caja').innerHTML = `
-    <button class="cerrar" onclick="cerrarModal()">✕</button>
-    <h2>${TIPO_TXT[f.tipo_comprobante]||'CFDI'} · ${(f.serie||'')+(f.folio||'')}</h2>
-    <p style="color:var(--gris);font-size:13px">UUID ${f.uuid}</p>
-    ${nominaHtml}
-    <dl class="kv">
-      <dt>Fecha</dt><dd>${fmtF(f.fecha)}</dd>
-      <dt>Emisor</dt><dd>${f.emisor_nombre||'—'} (${f.emisor_rfc||'—'})</dd>
-      <dt>Receptor</dt><dd>${f.receptor_nombre||'—'} (${f.receptor_rfc||'—'})</dd>
-      <dt>Subtotal</dt><dd>${fmt$(f.subtotal)}</dd>
-      <dt>Total</dt><dd><b>${fmt$(f.total)}</b></dd>
-      <dt>Estatus SAT</dt><dd>${f.estatus}</dd>
-    </dl>
-    <h4>Conceptos</h4>
-    <table><thead><tr><th>Descripción</th><th>Cant.</th><th style="text-align:right">P. unitario</th><th style="text-align:right">Importe</th></tr></thead>
-    <tbody>${conceptos}</tbody></table>
-    ${imps ? `<h4 style="margin-top:12px">Impuestos</h4><table><thead><tr><th>Tipo</th><th>Impuesto</th><th>Tasa</th><th style="text-align:right">Importe</th></tr></thead><tbody>${imps}</tbody></table>` : ''}
-    <div style="margin-top:16px">
-      <a class="btn secundario" href="/api/facturas/${f.uuid}/xml" style="text-decoration:none;padding:10px 20px">⬇ XML</a>
-      <a class="btn" href="/api/facturas/${f.uuid}/pdf" target="_blank" style="text-decoration:none;padding:10px 20px">⬇ PDF</a>
-    </div>`;
-  $('modal').classList.add('abierto');
-}
-function cerrarModal() { $('modal').classList.remove('abierto'); }
-$('modal').addEventListener('click', e => { if (e.target.id === 'modal') cerrarModal(); });
+  uuidActual = uuid;
+  $('drawer-body').innerHTML = '<div class="skel" style="height:20px;margin:8px 0"></div>'.repeat(8);
+  $('drawer-foot').innerHTML = '';
+  abrirDrawer();
+  try {
+    const f = await api('/api/facturas/' + uuid);
+    const esNomina = f.tipo_comprobante === 'N';
+    $('drawer-titulo').innerHTML =
+      `<span class="badge ${f.tipo_flujo}">${f.tipo_flujo}</span>
+       <span class="badge ${f.tipo_comprobante}">${TIPO_TXT[f.tipo_comprobante]||'CFDI'}</span>
+       ${esc((f.serie||'')+(f.folio||'Sin folio'))}`;
+    $('drawer-uuid').textContent = f.uuid;
 
-// ---------- Sesión e.firma ----------
+    let nominaHtml = '';
+    if (esNomina) {
+      const perc = (f.nomina_percepciones || []).map(p =>
+        `<tr><td>${esc(p.concepto)||'—'}</td><td class="monto">${fmt$(p.gravado)}</td><td class="monto">${fmt$(p.exento)}</td></tr>`).join('');
+      const ded = (f.nomina_deducciones || []).map(d =>
+        `<tr><td>${esc(d.concepto)||'—'}</td><td class="monto">${fmt$(d.importe)}</td></tr>`).join('');
+      nominaHtml = `<div class="sec-titulo">🧾 Nómina</div>
+        <div class="nomina-box"><dl class="kv">
+          <dt>Fecha de pago</dt><dd>${esc(f.nomina_fecha_pago)||'—'}</dd>
+          <dt>Días pagados</dt><dd>${f.nomina_dias_pagados ?? '—'}</dd>
+          <dt>Total percepciones</dt><dd>${fmt$(f.nomina_total_percepciones)}</dd>
+          <dt>Total deducciones</dt><dd>${fmt$(f.nomina_total_deducciones)}</dd>
+          <dt><b>Neto pagado</b></dt><dd><b>${fmt$(f.nomina_neto)}</b></dd>
+        </dl></div>
+        ${perc ? `<b style="font-size:13px">Percepciones</b>
+        <table><thead><tr><th>Concepto</th><th style="text-align:right">Gravado</th><th style="text-align:right">Exento</th></tr></thead>
+        <tbody>${perc}</tbody></table>` : ''}
+        ${ded ? `<b style="font-size:13px">Deducciones</b>
+        <table><thead><tr><th>Concepto</th><th style="text-align:right">Importe</th></tr></thead>
+        <tbody>${ded}</tbody></table>` : ''}`;
+    }
+
+    const conceptos = (f.conceptos||[]).map(c =>
+      `<tr><td>${esc(c.descripcion)||'—'}<div style="color:var(--gris-claro);font-size:11px">${esc(c.clave_prod_serv)||''}</div></td>
+       <td>${c.cantidad??'—'}</td><td class="monto">${fmt$(c.valor_unitario)}</td><td class="monto">${fmt$(c.importe)}</td></tr>`).join('')
+      || '<tr><td colspan="4" style="color:var(--gris)">Sin conceptos</td></tr>';
+    const imps = (f.impuestos||[]).map(i =>
+      `<tr><td>${i.tipo==='traslado'?'Traslado':'Retención'}</td><td>${esc(i.impuesto)||'—'}</td>
+       <td>${i.tasa??'—'}</td><td class="monto">${fmt$(i.importe)}</td></tr>`).join('');
+
+    $('drawer-body').innerHTML = `
+      <div class="sec-titulo">Datos del comprobante</div>
+      <dl class="kv">
+        <dt>Fecha emisión</dt><dd>${fmtF(f.fecha)}</dd>
+        <dt>Fecha timbrado</dt><dd>${fmtF(f.fecha_timbrado)}</dd>
+        <dt>Emisor</dt><dd>${esc(f.emisor_nombre)||'—'} <span class="cod">${esc(f.emisor_rfc)||''}</span></dd>
+        <dt>Receptor</dt><dd>${esc(f.receptor_nombre)||'—'} <span class="cod">${esc(f.receptor_rfc)||''}</span></dd>
+        ${f.receptor_uso_cfdi ? `<dt>Uso CFDI</dt><dd>${esc(f.receptor_uso_cfdi)}</dd>` : ''}
+        <dt>Moneda</dt><dd>${esc(f.moneda)||'—'}</dd>
+        ${f.forma_pago ? `<dt>Forma de pago</dt><dd>${esc(f.forma_pago)}</dd>` : ''}
+        ${f.metodo_pago ? `<dt>Método de pago</dt><dd>${esc(f.metodo_pago)}</dd>` : ''}
+        <dt>Subtotal</dt><dd>${fmt$(f.subtotal)}</dd>
+        ${f.total_trasladados ? `<dt>Trasladados</dt><dd>${fmt$(f.total_trasladados)}</dd>` : ''}
+        ${f.total_retenidos ? `<dt>Retenidos</dt><dd>${fmt$(f.total_retenidos)}</dd>` : ''}
+        <dt>Total</dt><dd><b style="font-size:16px">${fmt$(f.total)}</b></dd>
+        <dt>Estatus SAT</dt><dd>${esc(f.estatus)}</dd>
+      </dl>
+      ${nominaHtml}
+      <div class="sec-titulo">Conceptos</div>
+      <table><thead><tr><th>Descripción</th><th>Cant.</th><th style="text-align:right">P. unitario</th><th style="text-align:right">Importe</th></tr></thead>
+      <tbody>${conceptos}</tbody></table>
+      ${imps ? `<div class="sec-titulo">Impuestos</div>
+      <table><thead><tr><th>Tipo</th><th>Impuesto</th><th>Tasa</th><th style="text-align:right">Importe</th></tr></thead>
+      <tbody>${imps}</tbody></table>` : ''}`;
+    $('drawer-foot').innerHTML = `
+      <a class="btn secundario" href="/api/facturas/${f.uuid}/xml" style="text-decoration:none">⬇ XML</a>
+      <a class="btn" href="/api/facturas/${f.uuid}/pdf" target="_blank" style="text-decoration:none">⬇ PDF</a>`;
+  } catch(e) {
+    $('drawer-body').innerHTML = `<div class="vacio"><span class="ico">⚠️</span><b>No se pudo cargar el detalle</b>${esc(e.message)}</div>`;
+  }
+}
+function abrirDrawer() { $('drawer').classList.add('abierto'); $('drawer-fondo').classList.add('abierto'); }
+function cerrarDrawer() { $('drawer').classList.remove('abierto'); $('drawer-fondo').classList.remove('abierto'); }
+function copiarUUID() {
+  if (!uuidActual) return;
+  navigator.clipboard.writeText(uuidActual).then(() => toast('UUID copiado', 'ok', 1800));
+}
+
+/* ================= Sesión e.firma ================= */
 async function crearSesion() {
+  const btn = $('btn-sesion');
+  if (!$('s-cer').files[0] || !$('s-key').files[0]) { toast('Selecciona tu archivo .cer y tu archivo .key', 'warn'); return; }
+  if (!$('s-pass').value) { toast('Escribe la contraseña de tu e.firma', 'warn'); return; }
   const fd = new FormData();
-  if (!$('s-cer').files[0] || !$('s-key').files[0]) { alert('Selecciona el .cer y el .key'); return; }
   fd.append('cer', $('s-cer').files[0]);
   fd.append('key', $('s-key').files[0]);
   fd.append('password', $('s-pass').value);
   fd.append('rfc', $('s-rfc').value);
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Cargando…';
   try {
     const r = await api('/api/sesion', {method:'POST', body:fd});
-    tokenSesion = r.token;
+    tokenSesion = r.token; rfcSesion = r.rfc;
+    actualizarBadgeSesion();
     $('estado-sesion').className = 'alerta ok';
-    $('estado-sesion').textContent = '✅ e.firma cargada para ' + r.rfc + ' (solo en memoria).';
+    $('estado-sesion').textContent = '✅ e.firma cargada para ' + r.rfc + ' (solo en memoria, expira en 30 min sin uso).';
+    toast('e.firma cargada correctamente', 'ok');
   } catch(e) {
     $('estado-sesion').className = 'alerta error';
     $('estado-sesion').textContent = '❌ ' + e.message;
-  }
+  } finally { btn.disabled = false; btn.textContent = 'Cargar e.firma'; }
 }
 async function cerrarSesion() {
   try { await api('/api/sesion', {method:'DELETE', headers:authHeaders()}); } catch(e) {}
-  tokenSesion = null;
+  tokenSesion = null; rfcSesion = null;
+  actualizarBadgeSesion();
+  detenerPolling();
   $('estado-sesion').className = 'alerta info';
   $('estado-sesion').textContent = 'Sin sesión: carga tu e.firma para descargar del SAT.';
+  toast('Sesión cerrada: tu e.firma se eliminó de la memoria', 'info');
 }
 
-// ---------- Descarga masiva ----------
+/* ================= Descarga masiva ================= */
+function rangoRapido(cual) {
+  const hoy = new Date();
+  const iso = d => d.toISOString().slice(0,10);
+  let ini = new Date(hoy);
+  if (cual === '7d') ini.setDate(hoy.getDate() - 6);
+  else if (cual === '30d') ini.setDate(hoy.getDate() - 29);
+  else if (cual === 'mes') ini = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  else if (cual === 'anio') ini = new Date(hoy.getFullYear(), 0, 1);
+  $('d-desde').value = iso(ini);
+  $('d-hasta').value = iso(hoy);
+}
+function marcarRadio(input) {
+  document.querySelectorAll('.radio-card').forEach(c => c.classList.remove('seleccionado'));
+  input.closest('.radio-card').classList.add('seleccionado');
+}
+function actualizarEtiquetaContraparte() {
+  const t = $('d-tipo').value;
+  $('d-contraparte-label').textContent = t === 'emitidas'
+    ? 'Filtrar por RFC del receptor (opcional)'
+    : t === 'recibidas'
+      ? 'Filtrar por RFC del emisor (opcional)'
+      : 'Filtrar por RFC de contraparte (opcional)';
+}
+function tipoDescargaSel() {
+  const r = document.querySelector('input[name="d-td"]:checked');
+  return r ? r.value : 'CFDI';
+}
+
 async function solicitarDescarga() {
-  if (!tokenSesion) { $('msg-descarga').innerHTML = '<div class="alerta error">Primero carga tu e.firma (paso 1).</div>'; return; }
+  if (!tokenSesion) { toast('Primero carga tu e.firma en el paso 1.', 'warn'); return; }
+  if (!$('d-desde').value || !$('d-hasta').value) { toast('Indica fecha de inicio y fecha de fin.', 'warn'); return; }
+  const btn = $('btn-descarga');
   const fd = new FormData();
   fd.append('tipo', $('d-tipo').value);
   fd.append('fecha_inicio', $('d-desde').value);
   fd.append('fecha_fin', $('d-hasta').value);
-  $('msg-descarga').innerHTML = '<div class="alerta info">Solicitando al SAT…</div>';
+  fd.append('tipo_descarga', tipoDescargaSel());
+  if ($('d-contraparte').value.trim()) fd.append('rfc_contraparte', $('d-contraparte').value.trim());
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Solicitando…';
+  $('msg-descarga').innerHTML = '';
   try {
     const r = await api('/api/descarga', {method:'POST', headers:authHeaders(), body:fd});
     $('msg-descarga').innerHTML = r.resultados.map(x =>
       x.estado === 'error'
-        ? `<div class="alerta error">❌ ${x.tipo}: ${x.detalle}</div>`
-        : `<div class="alerta ok">✅ ${x.tipo}: solicitud ${x.id_solicitud} en proceso. El SAT tarda de minutos a horas.</div>`
-    ).join('') + `<div class="nota-seg">${r.nota}</div>`;
+        ? `<div class="alerta error">❌ <b>${esc(x.tipo)}</b>: ${esc(x.detalle)}</div>`
+        : `<div class="alerta ok">✅ <b>${esc(x.tipo)}</b>: solicitud <span class="mono">${esc(x.id_solicitud)}</span> en proceso. El SAT tarda de minutos a horas.</div>`
+    ).join('') + `<div class="nota-seg">${esc(r.nota)}</div>`;
+    toast('Solicitudes enviadas al SAT', 'ok');
+    cambiarTab('solicitudes');
   } catch(e) {
-    $('msg-descarga').innerHTML = '<div class="alerta error">❌ ' + e.message + '</div>';
-  }
+    $('msg-descarga').innerHTML = '<div class="alerta error">❌ ' + esc(e.message) + '</div>';
+  } finally { btn.disabled = false; btn.textContent = 'Solicitar al SAT'; }
 }
 
-// ---------- Importar ----------
+/* ================= Buscar por UUID ================= */
+async function solicitarUUID() {
+  if (!tokenSesion) { toast('Primero carga tu e.firma en el paso 1.', 'warn'); return; }
+  const folio = $('u-folio').value.trim();
+  if (!folio) { toast('Escribe el folio fiscal (UUID).', 'warn'); return; }
+  const btn = $('btn-uuid');
+  const fd = new FormData(); fd.append('folio', folio);
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Buscando…';
+  $('msg-uuid').innerHTML = '';
+  try {
+    const r = await api('/api/uuid', {method:'POST', headers:authHeaders(), body:fd});
+    $('msg-uuid').innerHTML = `<div class="alerta ok">✅ Solicitud <span class="mono">${esc(r.id_solicitud)}</span> en proceso.</div>
+      <div class="nota-seg">${esc(r.nota)}</div>`;
+    toast('Búsqueda por folio enviada al SAT', 'ok');
+    cambiarTab('solicitudes');
+  } catch(e) {
+    $('msg-uuid').innerHTML = '<div class="alerta error">❌ ' + esc(e.message) + '</div>';
+  } finally { btn.disabled = false; btn.textContent = 'Buscar'; }
+}
+
+/* ================= Importar XML ================= */
 async function importarXmls() {
   const files = $('i-archivos').files;
-  if (!files.length) { alert('Selecciona al menos un XML'); return; }
+  if (!files.length) { toast('Selecciona al menos un archivo XML.', 'warn'); return; }
   const fd = new FormData();
   fd.append('tipo_flujo', $('i-flujo').value);
   for (const f of files) fd.append('archivos', f);
-  $('msg-importar').innerHTML = '<div class="alerta info">Importando…</div>';
+  const btn = $('btn-importar');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Importando…';
+  $('msg-importar').innerHTML = '';
   try {
     const r = await api('/api/importar-xmls', {method:'POST', body:fd});
     let html = `<div class="alerta ok">✅ ${r.nuevos} nuevo(s), ${r.duplicados} duplicado(s) omitido(s).</div>`;
-    if (r.errores.length) html += '<div class="alerta error">❌ ' + r.errores.map(e => e.archivo+': '+e.error).join('<br>') + '</div>';
+    if (r.errores.length) html += '<div class="alerta error">❌ ' + r.errores.map(e => esc(e.archivo)+': '+esc(e.error)).join('<br>') + '</div>';
     $('msg-importar').innerHTML = html;
     cargarResumen(); cargarFacturas();
-  } catch(e) { $('msg-importar').innerHTML = '<div class="alerta error">❌ ' + e.message + '</div>'; }
+    toast(`Importación completa: ${r.nuevos} nuevos`, 'ok');
+  } catch(e) { $('msg-importar').innerHTML = '<div class="alerta error">❌ ' + esc(e.message) + '</div>'; }
+  finally { btn.disabled = false; btn.textContent = 'Importar'; }
 }
 
-// ---------- Solicitudes ----------
+/* ================= Solicitudes ================= */
+function badgeEstado(estado) {
+  const mapa = {
+    'en_proceso': ['proc', 'En proceso'], 'aceptada': ['proc', 'Aceptada'],
+    'terminada': ['ok', 'Terminada'], 'lista': ['ok', 'Lista'],
+    'rechazada': ['err', 'Rechazada'], 'error': ['err', 'Error'],
+    'vencida': ['gris', 'Vencida'],
+  };
+  const [clase, txt] = mapa[estado] || ['gris', estado];
+  return `<span class="badge ${clase}">${txt}</span>`;
+}
+function tipoSolicitudTxt(x) {
+  let t = x.tipo === 'folio' ? 'folio (UUID)' : x.tipo;
+  const td = x.tipo_descarga && x.tipo_descarga !== 'CFDI'
+    ? ` <span class="badge info">Metadata</span>` : '';
+  const fol = x.folio ? `<div class="mono" style="font-size:11px;color:var(--gris)">${esc(x.folio.slice(0,13))}…</div>` : '';
+  return t + td + fol;
+}
+function motivoTxt(x) {
+  const partes = [];
+  if (x.codigo_sat) partes.push(`<span class="cod">${esc(x.codigo_sat)}</span>`);
+  if (x.mensaje) partes.push(`<span class="motivo" title="${esc(x.mensaje)}">${esc(x.mensaje)}</span>`);
+  return partes.join(' ') || '<span style="color:var(--gris-claro)">—</span>';
+}
+
 async function cargarSolicitudes() {
-  const s = await api('/api/solicitudes');
-  $('lista-sol').innerHTML = s.length ? `<table><thead><tr><th>#</th><th>RFC</th><th>Tipo</th><th>Periodo</th><th>Estado</th><th></th></tr></thead><tbody>${
-    s.map(x => `<tr><td>${x.id}</td><td>${x.rfc}</td><td>${x.tipo}</td><td>${x.fecha_inicio} → ${x.fecha_fin}</td><td>${x.estado}</td>
-    <td class="acciones">${(x.estado==='en_proceso'||x.estado==='aceptada') ? `<button onclick="revisarSolicitud(${x.id})">Revisar en el SAT</button>` : ''}</td></tr>`).join('')
-  }</tbody></table><div id="msg-revisar"></div>` : '<div class="vacio">Aún no hay solicitudes de descarga.</div>';
-}
-
-async function revisarSolicitud(id) {
-  if (!tokenSesion) { alert('Primero carga tu e.firma en la pestaña "Descarga SAT".'); return; }
-  $('msg-revisar').innerHTML = '<div class="alerta info">Consultando al SAT…</div>';
+  $('lista-sol').innerHTML = `<div class="card"><div class="skel" style="height:18px;margin:8px 0"></div>
+    <div class="skel" style="height:18px;margin:8px 0"></div><div class="skel" style="height:18px;margin:8px 0"></div></div>`;
   try {
-    const r = await api('/api/solicitudes/' + id + '/revisar', {method:'POST', headers:authHeaders()});
-    $('msg-revisar').innerHTML = `<div class="alerta ${r.estado==='lista' ? 'ok' : 'info'}">
-      ${r.estado === 'lista' ? `✅ ${r.nota} (${r.duplicados} duplicados omitidos)` : `⏳ ${r.nota || r.mensaje}`}</div>`;
-    cargarSolicitudes(); cargarResumen();
+    const s = await api('/api/solicitudes');
+    renderSolicitudes(s);
+    reiniciarPolling(s);
   } catch(e) {
-    $('msg-revisar').innerHTML = '<div class="alerta error">❌ ' + e.message + '</div>';
+    $('lista-sol').innerHTML = `<div class="vacio"><span class="ico">⚠️</span><b>No se pudo cargar</b>${esc(e.message)}</div>`;
   }
 }
 
-cargarResumen(); cargarFacturas();
+function renderSolicitudes(s) {
+  const badge = $('badge-activas');
+  const nActivas = s.filter(x => ESTADOS_ACTIVOS.includes(x.estado)).length;
+  if (nActivas) { badge.style.display = ''; badge.textContent = nActivas + ' activas'; }
+  else badge.style.display = 'none';
+
+  if (!s.length) {
+    $('lista-sol').innerHTML = `<div class="vacio"><span class="ico">📋</span>
+      <b>Aún no hay solicitudes</b>Pide tu primera descarga masiva en la pestaña "Descarga SAT".</div>`;
+    return;
+  }
+  $('lista-sol').innerHTML = `<div class="tabla-scroll"><table><thead><tr>
+    <th>#</th><th>RFC</th><th>Tipo</th><th>Periodo</th><th>Estado</th><th>Motivo del SAT</th><th></th>
+    </tr></thead><tbody>${s.map(x => `
+    <tr data-sol-id="${x.id}">
+      <td>${x.id}</td><td class="mono">${esc(x.rfc)}</td>
+      <td>${tipoSolicitudTxt(x)}</td>
+      <td style="white-space:nowrap">${esc(x.fecha_inicio)} → ${esc(x.fecha_fin)}</td>
+      <td class="cel-estado">${badgeEstado(x.estado)}</td>
+      <td class="cel-motivo">${motivoTxt(x)}</td>
+      <td class="acciones cel-acciones">${accionesSolicitud(x)}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+
+function accionesSolicitud(x) {
+  const btns = [];
+  if (ESTADOS_ACTIVOS.includes(x.estado))
+    btns.push(`<button onclick="revisarSolicitud(${x.id})">Revisar en el SAT</button>`);
+  if (x.archivo)
+    btns.push(`<a href="/api/solicitudes/${x.id}/metadata">⬇ Metadata</a>`);
+  return btns.join('');
+}
+
+function actualizarFilaSolicitud(id, r) {
+  const tr = document.querySelector(`tr[data-sol-id="${id}"]`);
+  if (!tr) { cargarSolicitudes(); return; }
+  if (r.estado) tr.querySelector('.cel-estado').innerHTML = badgeEstado(r.estado);
+  if (r.mensaje || r.codigo_sat)
+    tr.querySelector('.cel-motivo').innerHTML = motivoTxt({mensaje: r.mensaje, codigo_sat: r.codigo_sat});
+  const teniaMetadata = tr.querySelector('.cel-acciones a[href*="/metadata"]') !== null;
+  const tieneMetadata = teniaMetadata || (r.archivos && r.archivos.length > 0);
+  let acciones = '';
+  if (r.estado && ESTADOS_ACTIVOS.includes(r.estado))
+    acciones += `<button onclick="revisarSolicitud(${id})">Revisar en el SAT</button>`;
+  if (tieneMetadata)
+    acciones += `<a href="/api/solicitudes/${id}/metadata">⬇ Metadata</a>`;
+  tr.querySelector('.cel-acciones').innerHTML = acciones;
+}
+
+async function revisarSolicitud(id, opts={}) {
+  const {silencioso = false} = opts;
+  if (!tokenSesion) {
+    if (!silencioso) toast('Primero carga tu e.firma en la pestaña "Descarga SAT".', 'warn');
+    return 'sin-sesion';
+  }
+  try {
+    const r = await api('/api/solicitudes/' + id + '/revisar', {method:'POST', headers:authHeaders()});
+    actualizarFilaSolicitud(id, r);
+    if (r.estado === 'lista') { cargarResumen(); cargarFacturas(); }
+    if (!silencioso) {
+      if (r.estado === 'lista') toast('✅ ' + esc(r.nota || 'Solicitud lista'), 'ok');
+      else if (r.mensaje) toast('⏳ ' + esc(r.mensaje), 'info');
+      else toast('⏳ El SAT aún no termina. Vuelve a revisar en unos minutos.', 'info');
+    }
+    return r.estado;
+  } catch(e) {
+    if (e.sesionExpirada) {
+      detenerPolling();
+      toast('⚠️ Tu sesión de e.firma expiró. Recárgala en "Descarga SAT" para seguir revisando.', 'warn', 9000);
+      return 'stop';
+    }
+    if (!silencioso) toast('❌ ' + esc(e.message), 'error');
+    return 'error';
+  }
+}
+
+/* ---- Polling automático cada 3 s ---- */
+function detenerPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  const pi = $('poll-info');
+  if (pi) pi.textContent = 'Las solicitudes en proceso se revisan solas cada 3 segundos.';
+}
+function reiniciarPolling(solicitudes) {
+  detenerPolling();
+  if (tabActivo() !== 'solicitudes' || document.hidden) return;
+  const activas = (solicitudes || []).filter(x => ESTADOS_ACTIVOS.includes(x.estado));
+  if (!activas.length || !tokenSesion) return;
+  $('poll-info').innerHTML = `<span class="spinner oscuro"></span>Revisando automáticamente ${activas.length} solicitud(es) en proceso…`;
+  const ids = activas.map(x => x.id);
+  pollTimer = setInterval(() => pulsoSolicitudes(ids), 3000);
+}
+async function pulsoSolicitudes(ids) {
+  for (const id of ids) {
+    const r = await revisarSolicitud(id, {silencioso: true});
+    if (r === 'stop' || r === 'sin-sesion') return; // sesión expirada: se detuvo el polling
+  }
+  // Re-evaluar: ¿siguen quedando activas?
+  try {
+    const s = await api('/api/solicitudes');
+    const quedan = s.filter(x => ESTADOS_ACTIVOS.includes(x.estado));
+    renderSolicitudes(s);
+    if (!quedan.length) { detenerPolling(); toast('Todas las solicitudes terminaron de procesarse.', 'ok'); }
+    else reiniciarPolling(s);
+  } catch(e) { /* se reintenta en el siguiente ciclo */ }
+}
+
+/* ================= Arranque ================= */
+actualizarEtiquetaContraparte();
+actualizarBadgeSesion();
+cargarResumen();
+cargarFacturas();
 </script>
 </body>
 </html>

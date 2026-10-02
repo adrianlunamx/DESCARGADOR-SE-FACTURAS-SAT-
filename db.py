@@ -92,17 +92,57 @@ def init_db() -> None:
             importe REAL
         );
 
+        CREATE TABLE IF NOT EXISTS nomina_percepciones (
+            id INTEGER PRIMARY KEY,
+            factura_id INTEGER NOT NULL REFERENCES facturas(id) ON DELETE CASCADE,
+            tipo TEXT,
+            clave TEXT,
+            concepto TEXT,
+            gravado REAL,
+            exento REAL
+        );
+
+        CREATE TABLE IF NOT EXISTS nomina_deducciones (
+            id INTEGER PRIMARY KEY,
+            factura_id INTEGER NOT NULL REFERENCES facturas(id) ON DELETE CASCADE,
+            tipo TEXT,
+            clave TEXT,
+            concepto TEXT,
+            importe REAL
+        );
+
         CREATE TABLE IF NOT EXISTS solicitudes (
             id INTEGER PRIMARY KEY,
             rfc TEXT NOT NULL,
-            tipo TEXT NOT NULL,                -- 'emitidas' | 'recibidas'
+            tipo TEXT NOT NULL,                -- 'emitidas' | 'recibidas' | 'folio'
             fecha_inicio TEXT NOT NULL,
             fecha_fin TEXT NOT NULL,
             estado TEXT NOT NULL,              -- 'en_proceso' | 'lista' | 'error'
             detalle TEXT,                      -- mensaje o id de solicitud del SAT
+            mensaje TEXT,                      -- motivo del SAT (verificación)
+            codigo_sat TEXT,                   -- CodigoEstadoSolicitud del SAT
+            tipo_descarga TEXT DEFAULT 'CFDI', -- 'CFDI' | 'Metadata'
+            folio TEXT,                        -- UUID buscado (solo tipo 'folio')
+            archivo TEXT,                      -- archivo de metadata guardado
             created_at TEXT NOT NULL
         );
         """)
+        # Migración ligera: columnas agregadas en v2 (solicitudes)
+        cols_sol = {r["name"] for r in conn.execute("PRAGMA table_info(solicitudes)")}
+        for col, tipo, default in [
+            ("mensaje", "TEXT", None),
+            ("codigo_sat", "TEXT", None),
+            ("tipo_descarga", "TEXT", "'CFDI'"),
+            ("folio", "TEXT", None),
+            ("archivo", "TEXT", None),
+        ]:
+            if col not in cols_sol:
+                if default is not None:
+                    conn.execute(
+                        f"ALTER TABLE solicitudes ADD COLUMN {col} {tipo} DEFAULT {default}")
+                else:
+                    conn.execute(
+                        f"ALTER TABLE solicitudes ADD COLUMN {col} {tipo}")
         # Migración ligera: por si la BD ya existía sin columnas de nómina
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(facturas)")}
         for col, tipo in [
@@ -174,6 +214,22 @@ def guardar_factura(datos: dict[str, Any], tipo_flujo: str, xml_bytes: bytes) ->
                 VALUES (?,?,?,?,?,?)
             """, (factura_id, c.get("clave_prod_serv"), c.get("descripcion"),
                   c.get("cantidad"), c.get("valor_unitario"), c.get("importe")))
+
+        # Detalle de percepciones/deducciones (solo nóminas)
+        for p in nomina.get("percepciones", []):
+            conn.execute("""
+                INSERT INTO nomina_percepciones
+                    (factura_id, tipo, clave, concepto, gravado, exento)
+                VALUES (?,?,?,?,?,?)
+            """, (factura_id, p.get("tipo"), p.get("clave"), p.get("concepto"),
+                  p.get("gravado"), p.get("exento")))
+        for d in nomina.get("deducciones", []):
+            conn.execute("""
+                INSERT INTO nomina_deducciones
+                    (factura_id, tipo, clave, concepto, importe)
+                VALUES (?,?,?,?,?)
+            """, (factura_id, d.get("tipo"), d.get("clave"), d.get("concepto"),
+                  d.get("importe")))
         return factura_id, True
 
 
@@ -249,6 +305,10 @@ def obtener_factura(uuid: str) -> Optional[dict[str, Any]]:
             "SELECT * FROM impuestos WHERE factura_id = ?", (fila["id"],))]
         datos["conceptos"] = [dict(r) for r in conn.execute(
             "SELECT * FROM conceptos WHERE factura_id = ?", (fila["id"],))]
+        datos["nomina_percepciones"] = [dict(r) for r in conn.execute(
+            "SELECT * FROM nomina_percepciones WHERE factura_id = ?", (fila["id"],))]
+        datos["nomina_deducciones"] = [dict(r) for r in conn.execute(
+            "SELECT * FROM nomina_deducciones WHERE factura_id = ?", (fila["id"],))]
     return datos
 
 

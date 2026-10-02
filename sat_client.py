@@ -53,6 +53,7 @@ CODIGOS_SAT = {
     "5004": "El SAT no encontró CFDIs en ese periodo.",
     "5005": "Ya existe una solicitud igual (duplicada).",
     "5011": "Se alcanzó el límite diario de folios descargados. Intenta mañana.",
+    "5012": "No se permite descargar ese comprobante porque está cancelado.",
 }
 
 
@@ -73,13 +74,24 @@ def solicitar_descarga(
     tipo: str,
     fecha_inicio: date,
     fecha_fin: date,
+    tipo_descarga: str = "CFDI",
+    rfc_contraparte: Optional[str] = None,
 ) -> str:
     """Solicita la descarga masiva al SAT. Devuelve el IdSolicitud.
 
     tipo: 'emitidas' | 'recibidas'. Las nóminas (TipoDeComprobante 'N') vienen
     incluidas en la misma descarga; no requieren una solicitud aparte.
+    tipo_descarga: 'CFDI' (XML completos) o 'Metadata' (listado ligero de datos
+    básicos; incluye cancelados, pero no trae los XML).
+    rfc_contraparte: filtro opcional — RFC del emisor (en 'recibidas') o del
+    receptor (en 'emitidas') para acotar la descarga.
     """
     from satcfdi.pacs.sat import TipoDescargaMasivaTerceros, EstadoComprobante
+
+    if tipo_descarga not in ("CFDI", "Metadata"):
+        raise ValueError("tipo_descarga debe ser 'CFDI' o 'Metadata'")
+    ts = (TipoDescargaMasivaTerceros.CFDI if tipo_descarga == "CFDI"
+          else TipoDescargaMasivaTerceros.METADATA)
 
     sat = _sat(cer_bytes, key_bytes, password)
     # NOTA (quirk real del SAT v1.5, verificado 2026-10-02): el atributo
@@ -92,19 +104,48 @@ def solicitar_descarga(
             fecha_inicial=fecha_inicio,
             fecha_final=fecha_fin,
             rfc_emisor=rfc,
-            tipo_solicitud=TipoDescargaMasivaTerceros.CFDI,
+            rfc_receptor=rfc_contraparte or None,
+            tipo_solicitud=ts,
             estado_comprobante=EstadoComprobante.VIGENTE,
         )
     elif tipo == "recibidas":
         resp = sat.recover_comprobante_received_request(
             fecha_inicial=fecha_inicio,
             fecha_final=fecha_fin,
+            rfc_emisor=rfc_contraparte or None,
             rfc_receptor=rfc,
-            tipo_solicitud=TipoDescargaMasivaTerceros.CFDI,
+            tipo_solicitud=ts,
             estado_comprobante=EstadoComprobante.VIGENTE,
         )
     else:
         raise ValueError("tipo debe ser 'emitidas' o 'recibidas'")
+
+    codigo = str(resp.get("CodEstatus") or resp.get("CodigoEstadoSolicitud") or "")
+    if codigo and codigo not in ("5000",):
+        raise RuntimeError(traducir_codigo(codigo, resp.get("Mensaje")))
+
+    id_solicitud = resp.get("IdSolicitud")
+    if not id_solicitud:
+        raise RuntimeError(
+            "El SAT no devolvió un IdSolicitud. Respuesta recibida: "
+            f"{dict(resp)}"
+        )
+    return str(id_solicitud)
+
+
+def solicitar_por_uuid(
+    cer_bytes: bytes,
+    key_bytes: bytes,
+    password: str,
+    folio: str,
+) -> str:
+    """Solicita la descarga de UN comprobante por su folio fiscal (UUID).
+
+    Devuelve el IdSolicitud. El flujo posterior (verificar estado y descargar)
+    es el mismo que el de la descarga masiva.
+    """
+    sat = _sat(cer_bytes, key_bytes, password)
+    resp = sat.recover_comprobante_uuid_request(folio=folio.strip())
 
     codigo = str(resp.get("CodEstatus") or resp.get("CodigoEstadoSolicitud") or "")
     if codigo and codigo not in ("5000",):
@@ -140,6 +181,30 @@ def consultar_estado(
     }
 
 
+def descargar_paquetes(
+    cer_bytes: bytes,
+    key_bytes: bytes,
+    password: str,
+    ids_paquetes: list[str],
+) -> list[tuple[str, bytes]]:
+    """Descarga cada paquete del SAT y devuelve (nombre_archivo, contenido).
+
+    Cada paquete del SAT es un ZIP (en base64). En descargas tipo CFDI contiene
+    los XML individuales; en descargas tipo Metadata contiene el archivo de
+    datos básicos (texto crudo del SAT, sin formato garantizado: se guarda tal
+    cual para descarga, no se intenta parsear).
+    """
+    sat = _sat(cer_bytes, key_bytes, password)
+    archivos: list[tuple[str, bytes]] = []
+    for id_paquete in ids_paquetes:
+        _respuesta, paquete_b64 = sat.recover_comprobante_download(id_paquete)
+        zip_bytes = base64.b64decode(paquete_b64)
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+            for nombre in zf.namelist():
+                archivos.append((nombre, zf.read(nombre)))
+    return archivos
+
+
 def descargar_xmls(
     cer_bytes: bytes,
     key_bytes: bytes,
@@ -148,18 +213,13 @@ def descargar_xmls(
 ) -> list[bytes]:
     """Descarga cada paquete del SAT y devuelve los XML individuales.
 
-    Cada paquete del SAT es un ZIP (en base64) con los XML adentro.
+    Solo aplica a solicitudes tipo CFDI. Para Metadata usa descargar_paquetes().
     """
-    sat = _sat(cer_bytes, key_bytes, password)
-    xmls: list[bytes] = []
-    for id_paquete in ids_paquetes:
-        _respuesta, paquete_b64 = sat.recover_comprobante_download(id_paquete)
-        zip_bytes = base64.b64decode(paquete_b64)
-        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-            for nombre in zf.namelist():
-                if nombre.lower().endswith(".xml"):
-                    xmls.append(zf.read(nombre))
-    return xmls
+    return [
+        contenido for nombre, contenido
+        in descargar_paquetes(cer_bytes, key_bytes, password, ids_paquetes)
+        if nombre.lower().endswith(".xml")
+    ]
 
 
 def traducir_codigo(codigo: Optional[str], mensaje_sat: Optional[str]) -> str:
