@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis Facturas SAT</title>
+<style>
+  :root { --azul:#16324F; --acento:#e8a33d; --gris:#6B7280; --fondo:#F7F8FA; --borde:#E5E7EB; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; margin:0; background:var(--fondo); color:#111827; }
+  header { background:var(--azul); color:#fff; padding:18px 24px; }
+  header h1 { margin:0; font-size:20px; }
+  header p { margin:4px 0 0; opacity:.75; font-size:13px; }
+  .kpis { display:flex; gap:12px; padding:16px 24px 0; flex-wrap:wrap; }
+  .kpi { background:#fff; border:1px solid var(--borde); border-radius:10px; padding:12px 18px; min-width:130px; }
+  .kpi .n { font-size:22px; font-weight:700; color:var(--azul); }
+  .kpi .l { font-size:12px; color:var(--gris); }
+  nav.tabs { display:flex; gap:8px; padding:16px 24px 0; }
+  nav.tabs button { border:1px solid var(--borde); background:#fff; border-radius:8px 8px 0 0;
+    padding:10px 18px; cursor:pointer; font-size:14px; border-bottom:none; }
+  nav.tabs button.activo { background:#fff; color:var(--azul); font-weight:700; box-shadow:inset 0 3px 0 var(--acento); }
+  main { background:#fff; border-top:1px solid var(--borde); margin:0 24px 24px; padding:20px;
+    border-radius:0 10px 10px 10px; border:1px solid var(--borde); }
+  section.pestana { display:none; } section.pestana.activo { display:block; }
+  .filtros { display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:14px; }
+  .filtros label { display:flex; flex-direction:column; font-size:12px; color:var(--gris); gap:4px; }
+  .filtros input,.filtros select { padding:8px 10px; border:1px solid var(--borde); border-radius:8px; font-size:14px; }
+  .chips { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .chip { border:1px solid var(--borde); background:#fff; border-radius:999px; padding:7px 16px;
+    cursor:pointer; font-size:13px; }
+  .chip.activo { background:var(--azul); color:#fff; border-color:var(--azul); font-weight:600; }
+  .chip .badge { background:var(--acento); color:#111; border-radius:999px; padding:1px 7px; font-size:11px; margin-left:6px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--borde); }
+  th { color:var(--gris); font-weight:600; font-size:12px; text-transform:uppercase; }
+  tr:hover td { background:#F9FAFB; }
+  .tag { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:600; }
+  .tag.emitida { background:#DBEAFE; color:#1E40AF; }
+  .tag.recibida { background:#EDE9FE; color:#5B21B6; }
+  .tag.nomina { background:#FEF3C7; color:#92400E; }
+  .tag.I { background:#D1FAE5; color:#065F46; } .tag.E { background:#FEE2E2; color:#991B1B; }
+  .tag.N { background:#FEF3C7; color:#92400E; } .tag.P { background:#E0E7FF; color:#3730A3; }
+  .tag.T { background:#F3F4F6; color:#374151; }
+  .monto { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .acciones a,.acciones button { margin-right:8px; font-size:12px; color:var(--azul); background:none;
+    border:none; cursor:pointer; text-decoration:underline; padding:0; }
+  .btn { background:var(--azul); color:#fff; border:none; border-radius:8px; padding:10px 20px;
+    font-size:14px; cursor:pointer; }
+  .btn.secundario { background:#fff; color:var(--azul); border:1px solid var(--azul); }
+  .btn:disabled { opacity:.5; cursor:wait; }
+  .alerta { border-radius:8px; padding:12px 16px; margin:12px 0; font-size:14px; }
+  .alerta.ok { background:#D1FAE5; color:#065F46; } .alerta.error { background:#FEE2E2; color:#991B1B; }
+  .alerta.info { background:#DBEAFE; color:#1E40AF; }
+  .card { border:1px solid var(--borde); border-radius:10px; padding:18px; margin-bottom:16px; }
+  .card h3 { margin:0 0 10px; color:var(--azul); font-size:16px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:800px){ .grid2{grid-template-columns:1fr;} }
+  .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:50;
+    align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  .modal.abierto { display:flex; }
+  .modal .caja { background:#fff; border-radius:12px; max-width:760px; width:100%; padding:24px; }
+  .modal h2 { margin:0 0 4px; color:var(--azul); }
+  .kv { display:grid; grid-template-columns:170px 1fr; gap:6px 12px; font-size:13px; margin:12px 0; }
+  .kv dt { color:var(--gris); } .kv dd { margin:0; }
+  .cerrar { float:right; border:none; background:none; font-size:20px; cursor:pointer; }
+  .nomina-box { background:#FFFBEB; border:1px solid #FCD34D; border-radius:8px; padding:14px; margin:12px 0; }
+  .nomina-box h4 { margin:0 0 8px; color:#92400E; }
+  .nota-seg { font-size:12px; color:var(--gris); background:#F9FAFB; border:1px dashed var(--borde);
+    border-radius:8px; padding:10px 14px; margin-top:10px; }
+  .vacio { text-align:center; color:var(--gris); padding:40px 0; }
+  footer { text-align:center; color:var(--gris); font-size:12px; padding:0 0 30px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧾 Mis Facturas SAT</h1>
+  <p>Tus CFDI emitidos y recibidos —incluidas nóminas— en tu propia computadora. Nada sale de aquí.</p>
+</header>
+
+<div class="kpis" id="kpis"></div>
+
+<nav class="tabs">
+  <button class="activo" data-tab="facturas">Facturas</button>
+  <button data-tab="descarga">Descarga SAT</button>
+  <button data-tab="importar">Importar XML</button>
+  <button data-tab="solicitudes">Solicitudes</button>
+</nav>
+
+<main>
+  <!-- ============ FACTURAS ============ -->
+  <section id="tab-facturas" class="pestana activo">
+    <div class="chips" id="chips">
+      <button class="chip activo" data-f="todas">Todas</button>
+      <button class="chip" data-f="emitida">Emitidas</button>
+      <button class="chip" data-f="recibida">Recibidas</button>
+      <button class="chip" data-f="nomina">🧾 Nómina <span class="badge" id="badge-nominas"></span></button>
+    </div>
+    <div class="filtros">
+      <label>Tipo comprobante
+        <select id="f-tipo">
+          <option value="">Todos</option>
+          <option value="I">Ingreso</option>
+          <option value="E">Egreso</option>
+          <option value="N">Nómina</option>
+          <option value="P">Pago</option>
+          <option value="T">Traslado</option>
+        </select>
+      </label>
+      <label>Desde <input type="date" id="f-desde"></label>
+      <label>Hasta <input type="date" id="f-hasta"></label>
+      <label>RFC (emisor o receptor) <input type="text" id="f-rfc" placeholder="AAA010101AAA"></label>
+      <label>Búsqueda libre <input type="text" id="f-texto" placeholder="nombre, folio, UUID…"></label>
+      <label>Monto mín. <input type="number" id="f-min" step="0.01" placeholder="0.00"></label>
+      <label>Monto máx. <input type="number" id="f-max" step="0.01" placeholder="0.00"></label>
+      <button class="btn" onclick="cargarFacturas()">Filtrar</button>
+      <button class="btn secundario" onclick="limpiarFiltros()">Limpiar</button>
+      <button class="btn secundario" onclick="exportarZip()">⬇ ZIP de XML</button>
+    </div>
+    <div id="lista"></div>
+  </section>
+
+  <!-- ============ DESCARGA SAT ============ -->
+  <section id="tab-descarga" class="pestana">
+    <div class="grid2">
+      <div class="card">
+        <h3>1. Carga tu e.firma</h3>
+        <div id="estado-sesion" class="alerta info">Sin sesión: carga tu e.firma para descargar del SAT.</div>
+        <div class="filtros" style="flex-direction:column;align-items:stretch">
+          <label>Archivo .cer <input type="file" id="s-cer" accept=".cer"></label>
+          <label>Archivo .key <input type="file" id="s-key" accept=".key"></label>
+          <label>Contraseña de la e.firma <input type="password" id="s-pass"></label>
+          <label>Tu RFC <input type="text" id="s-rfc" placeholder="ABCD123456XYZ"></label>
+        </div>
+        <button class="btn" onclick="crearSesion()">Cargar e.firma</button>
+        <button class="btn secundario" onclick="cerrarSesion()">Cerrar sesión</button>
+        <div class="nota-seg">🔒 Tu .cer, .key y contraseña <b>nunca</b> se guardan en disco ni se suben a ningún
+        servidor: viven solo en la memoria de esta app y se borran a los 30 minutos sin uso o al cerrar sesión.</div>
+      </div>
+      <div class="card">
+        <h3>2. Solicita la descarga masiva</h3>
+        <div class="filtros" style="flex-direction:column;align-items:stretch">
+          <label>Tipo
+            <select id="d-tipo">
+              <option value="ambas">Emitidas y recibidas</option>
+              <option value="emitidas">Solo emitidas</option>
+              <option value="recibidas">Solo recibidas</option>
+            </select>
+          </label>
+          <label>Fecha inicio <input type="date" id="d-desde"></label>
+          <label>Fecha fin <input type="date" id="d-hasta"></label>
+        </div>
+        <button class="btn" onclick="solicitarDescarga()">Solicitar al SAT</button>
+        <div id="msg-descarga"></div>
+        <div class="nota-seg">El SAT exige e.firma (no basta la contraseña) y tarda de minutos a horas en
+        preparar los paquetes. Las nóminas (TipoDeComprobante "N") vienen incluidas en la misma descarga.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ IMPORTAR ============ -->
+  <section id="tab-importar" class="pestana">
+    <div class="card">
+      <h3>Importar XMLs manualmente</h3>
+      <p style="color:var(--gris);font-size:14px">¿Aún no conectas tu e.firma? Descarga tus XML del portal del SAT
+      (<i>Factura electrónica → Cancela y recupera tus facturas</i>) y súbelos aquí. La app los parsea y los guarda igual.</p>
+      <div class="filtros">
+        <label>Estos XML son
+          <select id="i-flujo">
+            <option value="recibida">Recibidas (mis compras / gastos)</option>
+            <option value="emitida">Emitidas (mis ventas)</option>
+          </select>
+        </label>
+        <label>Archivos XML <input type="file" id="i-archivos" accept=".xml" multiple></label>
+        <button class="btn" onclick="importarXmls()">Importar</button>
+      </div>
+      <div id="msg-importar"></div>
+    </div>
+  </section>
+
+  <!-- ============ SOLICITUDES ============ -->
+  <section id="tab-solicitudes" class="pestana">
+    <button class="btn secundario" onclick="cargarSolicitudes()">↻ Actualizar</button>
+    <div id="lista-sol" style="margin-top:12px"></div>
+  </section>
+</main>
+
+<div class="modal" id="modal"><div class="caja" id="modal-caja"></div></div>
+
+<footer>Representación impresa generada localmente · El documento con validez fiscal es el XML · Hecho para Adrián</footer>
+
+<script>
+let tokenSesion = null;   // token de e.firma: solo vive en esta pestaña del navegador
+let chipActual = 'todas';
+
+const $ = id => document.getElementById(id);
+const fmt$ = n => n == null ? '—' : '$' + Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtF = f => f ? f.slice(0,19).replace('T',' ') : '—';
+const TIPO_TXT = {I:'Ingreso',E:'Egreso',N:'Nómina',P:'Pago',T:'Traslado'};
+
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav.tabs button').forEach(x => x.classList.remove('activo'));
+  document.querySelectorAll('section.pestana').forEach(x => x.classList.remove('activo'));
+  b.classList.add('activo'); $('tab-'+b.dataset.tab).classList.add('activo');
+  if (b.dataset.tab === 'solicitudes') cargarSolicitudes();
+});
+document.querySelectorAll('#chips .chip').forEach(c => c.onclick = () => {
+  document.querySelectorAll('#chips .chip').forEach(x => x.classList.remove('activo'));
+  c.classList.add('activo'); chipActual = c.dataset.f; cargarFacturas();
+});
+
+async function api(url, opts={}) {
+  const r = await fetch(url, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || ('Error ' + r.status));
+  return data;
+}
+function authHeaders() { return tokenSesion ? {Authorization:'Bearer '+tokenSesion} : {}; }
+
+// ---------- KPIs ----------
+async function cargarResumen() {
+  const r = await api('/api/resumen');
+  $('kpis').innerHTML = `
+    <div class="kpi"><div class="n">${r.total}</div><div class="l">facturas guardadas</div></div>
+    <div class="kpi"><div class="n">${r.emitidas}</div><div class="l">emitidas</div></div>
+    <div class="kpi"><div class="n">${r.recibidas}</div><div class="l">recibidas</div></div>
+    <div class="kpi"><div class="n">${r.nominas}</div><div class="l">nóminas</div></div>
+    <div class="kpi"><div class="n">${fmt$(r.monto_total)}</div><div class="l">monto acumulado</div></div>`;
+  $('badge-nominas').textContent = r.nominas || '';
+}
+
+// ---------- Lista ----------
+function filtrosQuery() {
+  const p = new URLSearchParams();
+  if (chipActual === 'emitida' || chipActual === 'recibida') p.set('tipo_flujo', chipActual);
+  if (chipActual === 'nomina') p.set('solo_nominas', 'true');
+  if ($('f-tipo').value) p.set('tipo_comprobante', $('f-tipo').value);
+  if ($('f-desde').value) p.set('fecha_inicio', $('f-desde').value);
+  if ($('f-hasta').value) p.set('fecha_fin', $('f-hasta').value);
+  if ($('f-rfc').value.trim()) p.set('rfc', $('f-rfc').value.trim());
+  if ($('f-texto').value.trim()) p.set('texto', $('f-texto').value.trim());
+  if ($('f-min').value) p.set('min_total', $('f-min').value);
+  if ($('f-max').value) p.set('max_total', $('f-max').value);
+  return p.toString();
+}
+
+async function cargarFacturas() {
+  const d = await api('/api/facturas?' + filtrosQuery());
+  if (!d.facturas.length) { $('lista').innerHTML = '<div class="vacio">Sin facturas. Importa XMLs o solicita la descarga al SAT.</div>'; return; }
+  const filas = d.facturas.map(f => {
+    const contraparte = f.tipo_flujo === 'emitida'
+      ? (f.receptor_nombre || f.receptor_rfc) : (f.emisor_nombre || f.emisor_rfc);
+    const esNomina = f.tipo_comprobante === 'N';
+    return `<tr>
+      <td>${fmtF(f.fecha)}</td>
+      <td><span class="tag ${f.tipo_flujo}">${f.tipo_flujo}</span></td>
+      <td><span class="tag ${f.tipo_comprobante} ${esNomina?'nomina':''}">${TIPO_TXT[f.tipo_comprobante]||f.tipo_comprobante||'—'}</span></td>
+      <td>${contraparte || '—'}</td>
+      <td>${(f.serie||'')+(f.folio||'') || '—'}</td>
+      <td class="monto">${fmt$(esNomina ? f.nomina_neto : f.total)}</td>
+      <td class="acciones">
+        <button onclick="verDetalle('${f.uuid}')">Ver</button>
+        <a href="/api/facturas/${f.uuid}/xml">XML</a>
+        <a href="/api/facturas/${f.uuid}/pdf" target="_blank">PDF</a>
+      </td></tr>`;
+  }).join('');
+  $('lista').innerHTML = `<p style="color:var(--gris);font-size:13px">${d.total} factura(s)</p>
+    <table><thead><tr><th>Fecha</th><th>Flujo</th><th>Tipo</th><th>Contraparte</th><th>Folio</th>
+    <th style="text-align:right">Total</th><th>Acciones</th></tr></thead><tbody>${filas}</tbody></table>`;
+}
+
+function limpiarFiltros() {
+  ['f-tipo','f-desde','f-hasta','f-rfc','f-texto','f-min','f-max'].forEach(id => $(id).value='');
+  cargarFacturas();
+}
+
+function exportarZip() { window.open('/api/exportar-zip?' + filtrosQuery(), '_blank'); }
+
+// ---------- Detalle ----------
+async function verDetalle(uuid) {
+  const f = await api('/api/facturas/' + uuid);
+  const esNomina = f.tipo_comprobante === 'N';
+  let nominaHtml = '';
+  if (esNomina) {
+    nominaHtml = `<div class="nomina-box"><h4>🧾 Datos de nómina</h4>
+      <dl class="kv">
+        <dt>Fecha de pago</dt><dd>${f.nomina_fecha_pago || '—'}</dd>
+        <dt>Días pagados</dt><dd>${f.nomina_dias_pagados ?? '—'}</dd>
+        <dt>Total percepciones</dt><dd>${fmt$(f.nomina_total_percepciones)}</dd>
+        <dt>Total deducciones</dt><dd>${fmt$(f.nomina_total_deducciones)}</dd>
+        <dt><b>Neto pagado</b></dt><dd><b>${fmt$(f.nomina_neto)}</b></dd>
+      </dl></div>`;
+  }
+  const conceptos = (f.conceptos||[]).map(c =>
+    `<tr><td>${c.descripcion||'—'}</td><td>${c.cantidad??'—'}</td><td class="monto">${fmt$(c.valor_unitario)}</td><td class="monto">${fmt$(c.importe)}</td></tr>`).join('')
+    || '<tr><td colspan="4">Sin conceptos</td></tr>';
+  const imps = (f.impuestos||[]).map(i =>
+    `<tr><td>${i.tipo}</td><td>${i.impuesto||'—'}</td><td>${i.tasa??'—'}</td><td class="monto">${fmt$(i.importe)}</td></tr>`).join('');
+  $('modal-caja').innerHTML = `
+    <button class="cerrar" onclick="cerrarModal()">✕</button>
+    <h2>${TIPO_TXT[f.tipo_comprobante]||'CFDI'} · ${(f.serie||'')+(f.folio||'')}</h2>
+    <p style="color:var(--gris);font-size:13px">UUID ${f.uuid}</p>
+    ${nominaHtml}
+    <dl class="kv">
+      <dt>Fecha</dt><dd>${fmtF(f.fecha)}</dd>
+      <dt>Emisor</dt><dd>${f.emisor_nombre||'—'} (${f.emisor_rfc||'—'})</dd>
+      <dt>Receptor</dt><dd>${f.receptor_nombre||'—'} (${f.receptor_rfc||'—'})</dd>
+      <dt>Subtotal</dt><dd>${fmt$(f.subtotal)}</dd>
+      <dt>Total</dt><dd><b>${fmt$(f.total)}</b></dd>
+      <dt>Estatus SAT</dt><dd>${f.estatus}</dd>
+    </dl>
+    <h4>Conceptos</h4>
+    <table><thead><tr><th>Descripción</th><th>Cant.</th><th style="text-align:right">P. unitario</th><th style="text-align:right">Importe</th></tr></thead>
+    <tbody>${conceptos}</tbody></table>
+    ${imps ? `<h4 style="margin-top:12px">Impuestos</h4><table><thead><tr><th>Tipo</th><th>Impuesto</th><th>Tasa</th><th style="text-align:right">Importe</th></tr></thead><tbody>${imps}</tbody></table>` : ''}
+    <div style="margin-top:16px">
+      <a class="btn secundario" href="/api/facturas/${f.uuid}/xml" style="text-decoration:none;padding:10px 20px">⬇ XML</a>
+      <a class="btn" href="/api/facturas/${f.uuid}/pdf" target="_blank" style="text-decoration:none;padding:10px 20px">⬇ PDF</a>
+    </div>`;
+  $('modal').classList.add('abierto');
+}
+function cerrarModal() { $('modal').classList.remove('abierto'); }
+$('modal').addEventListener('click', e => { if (e.target.id === 'modal') cerrarModal(); });
+
+// ---------- Sesión e.firma ----------
+async function crearSesion() {
+  const fd = new FormData();
+  if (!$('s-cer').files[0] || !$('s-key').files[0]) { alert('Selecciona el .cer y el .key'); return; }
+  fd.append('cer', $('s-cer').files[0]);
+  fd.append('key', $('s-key').files[0]);
+  fd.append('password', $('s-pass').value);
+  fd.append('rfc', $('s-rfc').value);
+  try {
+    const r = await api('/api/sesion', {method:'POST', body:fd});
+    tokenSesion = r.token;
+    $('estado-sesion').className = 'alerta ok';
+    $('estado-sesion').textContent = '✅ e.firma cargada para ' + r.rfc + ' (solo en memoria).';
+  } catch(e) {
+    $('estado-sesion').className = 'alerta error';
+    $('estado-sesion').textContent = '❌ ' + e.message;
+  }
+}
+async function cerrarSesion() {
+  try { await api('/api/sesion', {method:'DELETE', headers:authHeaders()}); } catch(e) {}
+  tokenSesion = null;
+  $('estado-sesion').className = 'alerta info';
+  $('estado-sesion').textContent = 'Sin sesión: carga tu e.firma para descargar del SAT.';
+}
+
+// ---------- Descarga masiva ----------
+async function solicitarDescarga() {
+  if (!tokenSesion) { $('msg-descarga').innerHTML = '<div class="alerta error">Primero carga tu e.firma (paso 1).</div>'; return; }
+  const fd = new FormData();
+  fd.append('tipo', $('d-tipo').value);
+  fd.append('fecha_inicio', $('d-desde').value);
+  fd.append('fecha_fin', $('d-hasta').value);
+  $('msg-descarga').innerHTML = '<div class="alerta info">Solicitando al SAT…</div>';
+  try {
+    const r = await api('/api/descarga', {method:'POST', headers:authHeaders(), body:fd});
+    $('msg-descarga').innerHTML = r.resultados.map(x =>
+      x.estado === 'error'
+        ? `<div class="alerta error">❌ ${x.tipo}: ${x.detalle}</div>`
+        : `<div class="alerta ok">✅ ${x.tipo}: solicitud ${x.id_solicitud} en proceso. El SAT tarda de minutos a horas.</div>`
+    ).join('') + `<div class="nota-seg">${r.nota}</div>`;
+  } catch(e) {
+    $('msg-descarga').innerHTML = '<div class="alerta error">❌ ' + e.message + '</div>';
+  }
+}
+
+// ---------- Importar ----------
+async function importarXmls() {
+  const files = $('i-archivos').files;
+  if (!files.length) { alert('Selecciona al menos un XML'); return; }
+  const fd = new FormData();
+  fd.append('tipo_flujo', $('i-flujo').value);
+  for (const f of files) fd.append('archivos', f);
+  $('msg-importar').innerHTML = '<div class="alerta info">Importando…</div>';
+  try {
+    const r = await api('/api/importar-xmls', {method:'POST', body:fd});
+    let html = `<div class="alerta ok">✅ ${r.nuevos} nuevo(s), ${r.duplicados} duplicado(s) omitido(s).</div>`;
+    if (r.errores.length) html += '<div class="alerta error">❌ ' + r.errores.map(e => e.archivo+': '+e.error).join('<br>') + '</div>';
+    $('msg-importar').innerHTML = html;
+    cargarResumen(); cargarFacturas();
+  } catch(e) { $('msg-importar').innerHTML = '<div class="alerta error">❌ ' + e.message + '</div>'; }
+}
+
+// ---------- Solicitudes ----------
+async function cargarSolicitudes() {
+  const s = await api('/api/solicitudes');
+  $('lista-sol').innerHTML = s.length ? `<table><thead><tr><th>#</th><th>RFC</th><th>Tipo</th><th>Periodo</th><th>Estado</th><th></th></tr></thead><tbody>${
+    s.map(x => `<tr><td>${x.id}</td><td>${x.rfc}</td><td>${x.tipo}</td><td>${x.fecha_inicio} → ${x.fecha_fin}</td><td>${x.estado}</td>
+    <td class="acciones">${(x.estado==='en_proceso'||x.estado==='aceptada') ? `<button onclick="revisarSolicitud(${x.id})">Revisar en el SAT</button>` : ''}</td></tr>`).join('')
+  }</tbody></table><div id="msg-revisar"></div>` : '<div class="vacio">Aún no hay solicitudes de descarga.</div>';
+}
+
+async function revisarSolicitud(id) {
+  if (!tokenSesion) { alert('Primero carga tu e.firma en la pestaña "Descarga SAT".'); return; }
+  $('msg-revisar').innerHTML = '<div class="alerta info">Consultando al SAT…</div>';
+  try {
+    const r = await api('/api/solicitudes/' + id + '/revisar', {method:'POST', headers:authHeaders()});
+    $('msg-revisar').innerHTML = `<div class="alerta ${r.estado==='lista' ? 'ok' : 'info'}">
+      ${r.estado === 'lista' ? `✅ ${r.nota} (${r.duplicados} duplicados omitidos)` : `⏳ ${r.nota || r.mensaje}`}</div>`;
+    cargarSolicitudes(); cargarResumen();
+  } catch(e) {
+    $('msg-revisar').innerHTML = '<div class="alerta error">❌ ' + e.message + '</div>';
+  }
+}
+
+cargarResumen(); cargarFacturas();
+</script>
+</body>
+</html>

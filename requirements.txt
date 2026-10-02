@@ -1,0 +1,13 @@
+# Dependencias de "Mis Facturas SAT" (versiones fijadas, verificadas en PyPI el 2026-10-02)
+fastapi==0.142.2
+uvicorn==0.54.0
+python-multipart==0.0.32      # necesario para subir .cer/.key y XMLs (Form/File)
+reportlab==5.0.1              # generación del PDF de representación impresa
+qrcode==8.2                   # código QR de verificación del SAT en el PDF
+pillow==12.3.0                # qrcode la usa para renderizar el PNG
+pytest==9.1.1                 # pruebas del parser
+
+# --- Integración con el SAT (descarga masiva) ---
+# Librería elegida según ../COMPARATIVA.md: satcfdi (MIT), API verificada
+# directamente en su código fuente (versión 26.8.0).
+satcfdi==26.8.0

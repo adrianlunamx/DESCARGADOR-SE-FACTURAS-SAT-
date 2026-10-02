@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- XML CFDI 4.0 de NOMINA de EJEMPLO con datos 100% ficticios. Solo para pruebas. -->
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4"
+                  xmlns:nomina12="http://www.sat.gob.mx/nomina12"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd http://www.sat.gob.mx/nomina12 http://www.sat.gob.mx/sitio_internet/cfd/nomina/nomina12.xsd"
+                  Version="4.0" Serie="NOM" Folio="42"
+                  Fecha="2026-09-30T08:00:00" FormaPago="99" MetodoPago="PUE"
+                  TipoDeComprobante="N" Moneda="MXN" TipoCambio="1"
+                  SubTotal="15000.00" Descuento="2500.00" Total="12500.00"
+                  LugarExpedicion="06600" Exportacion="01">
+  <cfdi:Emisor Rfc="AAA010101AAA" Nombre="EMPRESA DEMO SA DE CV" RegimenFiscal="601"/>
+  <cfdi:Receptor Rfc="XAXX010101000" Nombre="EMPLEADO DEMO"
+                 DomicilioFiscalReceptor="06600" RegimenFiscalReceptor="605" UsoCFDI="CN01"/>
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="84111505" Cantidad="1" ClaveUnidad="ACT"
+                   Descripcion="Pago de nomina" ValorUnitario="15000.00"
+                   Importe="15000.00" Descuento="2500.00" ObjetoImp="01"/>
+  </cfdi:Conceptos>
+  <cfdi:Complemento>
+    <tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital"
+                             Version="1.1" UUID="b5e7c123-4567-4a89-bcde-f0123456789a"
+                             FechaTimbrado="2026-09-30T08:01:00"
+                             SelloCFD="SELLO_FICTICIO_NOMINA_1234567890ABCDEF"
+                             NoCertificadoSAT="00001000000700000001"
+                             SelloSAT="SELLO_SAT_FICTICIO_NOMINA"/>
+    <nomina12:Nomina Version="1.2" TipoNomina="O"
+                     FechaPago="2026-09-30" FechaInicialPago="2026-09-16"
+                     FechaFinalPago="2026-09-30" NumDiasPagados="15.000"
+                     TotalPercepciones="15000.00" TotalDeducciones="2500.00"
+                     TotalOtrosPagos="0.00">
+      <nomina12:Emisor RegistroPatronal="R1234567890"/>
+      <nomina12:Receptor Curp="XAXX010101HDFXXX00" NumSeguridadSocial="12345678901"
+                         FechaInicioRelLaboral="2020-01-15" TipoContrato="01"
+                         TipoRegimen="02" NumEmpleado="0042" PeriodicidadPago="04"
+                         Banco="002" CuentaBancaria="12345678901" SalarioBaseCotApor="500.00"
+                         SalarioDiarioIntegrado="520.83" ClaveEntFed="DF"/>
+      <nomina12:Percepciones TotalSueldos="15000.00" TotalGravado="15000.00" TotalExento="0.00">
+        <nomina12:Percepcion TipoPercepcion="001" Clave="001"
+                             Concepto="Sueldos, Salarios Rayas y Jornales"
+                             ImporteGravado="15000.00" ImporteExento="0.00"/>
+      </nomina12:Percepciones>
+      <nomina12:Deducciones TotalOtrasDeducciones="2500.00" TotalImpuestosRetenidos="2000.00">
+        <nomina12:Deduccion TipoDeduccion="002" Clave="002" Concepto="ISR" Importe="2000.00"/>
+        <nomina12:Deduccion TipoDeduccion="004" Clave="004" Concepto="Otras deducciones" Importe="500.00"/>
+      </nomina12:Deducciones>
+    </nomina12:Nomina>
+  </cfdi:Complemento>
+</cfdi:Comprobante>
