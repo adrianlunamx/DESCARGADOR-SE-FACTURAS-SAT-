@@ -47,22 +47,58 @@ def test_recibo_nomina():
     assert d["uuid"] == "b5e7c123-4567-4a89-bcde-f0123456789a"
     assert d["tipo_comprobante"] == "N"
     assert etiqueta_tipo_comprobante("N") == "Nómina"
-    assert d["total"] == 12500.00
+    assert d["total"] == 14300.00
 
     nom = d["nomina"]
     assert nom is not None, "Debe detectar el complemento de nómina 1.2"
+    assert nom["tipo_nomina"] == "O"
     assert nom["fecha_pago"] == "2026-09-30"
     assert nom["fecha_inicial_pago"] == "2026-09-16"
     assert nom["fecha_final_pago"] == "2026-09-30"
     assert nom["dias_pagados"] == 15.0
-    assert nom["total_percepciones"] == 15000.00
+    assert nom["total_percepciones"] == 16500.00
     assert nom["total_deducciones"] == 2500.00
-    assert nom["total_otros_pagos"] == 0.00
+    assert nom["total_otros_pagos"] == 300.00
     # Neto = percepciones + otros pagos - deducciones
-    assert nom["neto"] == 12500.00
-    assert len(nom["percepciones"]) == 1
+    assert nom["neto"] == 14300.00
+
+    # Patrón y empleado
+    assert nom["emisor_patron"]["registro_patronal"] == "R1234567890"
+    assert nom["emisor_patron"]["curp"] == "AAA010101HDFXXX00"
+    emp = nom["empleado"]
+    assert emp["curp"] == "XAXX010101HDFXXX00"
+    assert emp["num_seguridad_social"] == "12345678901"
+    assert emp["num_empleado"] == "0042"
+    assert emp["puesto"] == "DESARROLLADOR"
+    assert emp["departamento"] == "SISTEMAS"
+    assert emp["antiguedad"] == "P6A"
+    assert emp["salario_diario_integrado"] == 520.83
+    assert emp["banco"] == "002"
+
+    # Percepciones con horas extra
+    assert len(nom["percepciones"]) == 2
     assert nom["percepciones"][0]["concepto"] == "Sueldos, Salarios Rayas y Jornales"
+    he = nom["percepciones"][1]
+    assert he["concepto"] == "Horas extra"
+    assert he["horas_extra"]["dias"] == 2.0
+    assert he["horas_extra"]["tipo_horas"] == "Dobles"
+    assert he["horas_extra"]["horas_extra"] == 10.0
+    assert he["horas_extra"]["importe_pagado"] == 1500.00
+
     assert len(nom["deducciones"]) == 2
+    assert nom["total_impuestos_retenidos"] == 2000.00
+
+    # Otros pagos con subsidio
+    assert len(nom["otros_pagos"]) == 1
+    op = nom["otros_pagos"][0]
+    assert op["concepto"] == "Subsidio para el empleo"
+    assert op["importe"] == 300.00
+    assert op["subsidio_causado"] == 300.00
+
+    # Incapacidades
+    assert len(nom["incapacidades"]) == 1
+    assert nom["incapacidades"][0]["dias"] == 1.0
+    assert nom["incapacidades"][0]["tipo"] == "02"
 
 
 def test_xml_invalido():

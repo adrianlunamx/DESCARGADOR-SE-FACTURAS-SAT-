@@ -6,6 +6,7 @@ ningún servicio externo: la app es 100% local.
 from __future__ import annotations
 
 import os
+import json
 import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -111,6 +112,24 @@ def init_db() -> None:
             importe REAL
         );
 
+        CREATE TABLE IF NOT EXISTS nomina_otros_pagos (
+            id INTEGER PRIMARY KEY,
+            factura_id INTEGER NOT NULL REFERENCES facturas(id) ON DELETE CASCADE,
+            tipo TEXT,
+            clave TEXT,
+            concepto TEXT,
+            importe REAL,
+            subsidio_causado REAL
+        );
+
+        CREATE TABLE IF NOT EXISTS nomina_incapacidades (
+            id INTEGER PRIMARY KEY,
+            factura_id INTEGER NOT NULL REFERENCES facturas(id) ON DELETE CASCADE,
+            dias REAL,
+            tipo TEXT,
+            importe REAL
+        );
+
         CREATE TABLE IF NOT EXISTS solicitudes (
             id INTEGER PRIMARY KEY,
             rfc TEXT NOT NULL,
@@ -151,6 +170,7 @@ def init_db() -> None:
             ("nomina_total_percepciones", "REAL"),
             ("nomina_total_deducciones", "REAL"),
             ("nomina_neto", "REAL"),
+            ("nomina_detalle", "TEXT"),
             ("sello_cfd", "TEXT"),
         ]:
             if col not in cols:
@@ -164,6 +184,8 @@ def guardar_factura(datos: dict[str, Any], tipo_flujo: str, xml_bytes: bytes) ->
     El XML se guarda en data/xml/<uuid>.xml.
     """
     nomina = datos.get("nomina") or {}
+    # Detalle completo de nómina como JSON (empleado, patrón, horas extra, etc.)
+    nomina_detalle_json = json.dumps(nomina, ensure_ascii=False) if nomina else None
     with get_conn() as conn:
         existente = conn.execute(
             "SELECT id FROM facturas WHERE uuid = ?", (datos["uuid"],)
@@ -184,8 +206,8 @@ def guardar_factura(datos: dict[str, Any], tipo_flujo: str, xml_bytes: bytes) ->
                 subtotal, total, total_trasladados, total_retenidos,
                 nomina_fecha_pago, nomina_dias_pagados,
                 nomina_total_percepciones, nomina_total_deducciones, nomina_neto,
-                sello_cfd, xml_nombre, created_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                nomina_detalle, sello_cfd, xml_nombre, created_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
             datos["uuid"], tipo_flujo, datos.get("fecha"), datos.get("fecha_timbrado"),
             datos.get("tipo_comprobante"), datos.get("serie"), datos.get("folio"),
@@ -196,7 +218,8 @@ def guardar_factura(datos: dict[str, Any], tipo_flujo: str, xml_bytes: bytes) ->
             datos.get("total_trasladados"), datos.get("total_retenidos"),
             nomina.get("fecha_pago"), nomina.get("dias_pagados"),
             nomina.get("total_percepciones"), nomina.get("total_deducciones"),
-            nomina.get("neto"), datos.get("sello_cfd"), xml_nombre, _utcnow(),
+            nomina.get("neto"), nomina_detalle_json,
+            datos.get("sello_cfd"), xml_nombre, _utcnow(),
         ))
         factura_id = cur.lastrowid
 
@@ -230,6 +253,19 @@ def guardar_factura(datos: dict[str, Any], tipo_flujo: str, xml_bytes: bytes) ->
                 VALUES (?,?,?,?,?)
             """, (factura_id, d.get("tipo"), d.get("clave"), d.get("concepto"),
                   d.get("importe")))
+        for o in nomina.get("otros_pagos", []):
+            conn.execute("""
+                INSERT INTO nomina_otros_pagos
+                    (factura_id, tipo, clave, concepto, importe, subsidio_causado)
+                VALUES (?,?,?,?,?,?)
+            """, (factura_id, o.get("tipo"), o.get("clave"), o.get("concepto"),
+                  o.get("importe"), o.get("subsidio_causado")))
+        for i in nomina.get("incapacidades", []):
+            conn.execute("""
+                INSERT INTO nomina_incapacidades
+                    (factura_id, dias, tipo, importe)
+                VALUES (?,?,?,?)
+            """, (factura_id, i.get("dias"), i.get("tipo"), i.get("importe")))
         return factura_id, True
 
 
@@ -309,6 +345,16 @@ def obtener_factura(uuid: str) -> Optional[dict[str, Any]]:
             "SELECT * FROM nomina_percepciones WHERE factura_id = ?", (fila["id"],))]
         datos["nomina_deducciones"] = [dict(r) for r in conn.execute(
             "SELECT * FROM nomina_deducciones WHERE factura_id = ?", (fila["id"],))]
+        datos["nomina_otros_pagos"] = [dict(r) for r in conn.execute(
+            "SELECT * FROM nomina_otros_pagos WHERE factura_id = ?", (fila["id"],))]
+        datos["nomina_incapacidades"] = [dict(r) for r in conn.execute(
+            "SELECT * FROM nomina_incapacidades WHERE factura_id = ?", (fila["id"],))]
+        # Detalle completo de nómina (empleado, patrón, horas extra, etc.)
+        try:
+            datos["nomina_detalle"] = json.loads(fila["nomina_detalle"]) \
+                if fila["nomina_detalle"] else None
+        except (TypeError, ValueError):
+            datos["nomina_detalle"] = None
     return datos
 
 

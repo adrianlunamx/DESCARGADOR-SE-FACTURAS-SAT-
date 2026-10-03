@@ -35,10 +35,21 @@ def test_nomina_guarda_percepciones_y_deducciones(tmp_path, monkeypatch):
 
     f = db.obtener_factura(datos["uuid"])
     assert f is not None
-    assert len(f["nomina_percepciones"]) == 1
+    assert len(f["nomina_percepciones"]) == 2
     assert f["nomina_percepciones"][0]["concepto"] == "Sueldos, Salarios Rayas y Jornales"
     assert len(f["nomina_deducciones"]) == 2
-    assert f["nomina_neto"] == 12500.00
+    assert f["nomina_neto"] == 14300.00
+    # Nuevas tablas v3
+    assert len(f["nomina_otros_pagos"]) == 1
+    assert f["nomina_otros_pagos"][0]["subsidio_causado"] == 300.00
+    assert len(f["nomina_incapacidades"]) == 1
+    # Detalle completo como JSON
+    det = f["nomina_detalle"]
+    assert det is not None
+    assert det["empleado"]["puesto"] == "DESARROLLADOR"
+    assert det["emisor_patron"]["registro_patronal"] == "R1234567890"
+    assert det["percepciones"][1]["horas_extra"]["horas_extra"] == 10.0
+    assert det["otros_pagos"][0]["subsidio_causado"] == 300.00
 
 
 def test_factura_sin_nomina_no_crea_detalle(tmp_path, monkeypatch):
@@ -102,6 +113,6 @@ def test_buscar_facturas_filtros(tmp_path, monkeypatch):
     filas, total = db.buscar_facturas(texto="consultoria")
     assert total == 1
     filas, total = db.buscar_facturas(min_total=12000)
-    assert total == 1  # solo la nómina (neto 12500)
+    assert total == 1  # solo la nómina (total 14300)
     r = db.resumen()
     assert r["total"] == 2 and r["nominas"] == 1

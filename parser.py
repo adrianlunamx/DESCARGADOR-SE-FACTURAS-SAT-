@@ -42,7 +42,12 @@ def _detectar_ns(raiz: ET.Element) -> str:
 
 
 def _extraer_nomina(complemento: Optional[ET.Element]) -> Optional[dict[str, Any]]:
-    """Extrae los datos del complemento de nómina 1.2, si existe."""
+    """Extrae el detalle completo del complemento de nómina 1.2, si existe.
+
+    Cubre: atributos del nodo Nomina, Emisor (registro patronal), Receptor
+    (datos del empleado), Percepciones (con horas extra y acciones/títulos),
+    Deducciones, OtrosPagos (con subsidio) e Incapacidades.
+    """
     if complemento is None:
         return None
     nomina = complemento.find(_tag(NS_NOMINA12, "Nomina"))
@@ -54,21 +59,78 @@ def _extraer_nomina(complemento: Optional[ET.Element]) -> Optional[dict[str, Any
     total_otros_pagos = _num(nomina.get("TotalOtrosPagos")) or 0.0
     neto = total_percepciones + total_otros_pagos - total_deducciones
 
+    # Emisor del complemento (patrón)
+    emisor_patron: dict[str, Any] = {}
+    nodo_emi = nomina.find(_tag(NS_NOMINA12, "Emisor"))
+    if nodo_emi is not None:
+        emisor_patron = {
+            "curp": nodo_emi.get("Curp"),
+            "registro_patronal": nodo_emi.get("RegistroPatronal"),
+            "rfc_patron_origen": nodo_emi.get("RfcPatronOrigen"),
+        }
+
+    # Receptor del complemento (empleado)
+    empleado: dict[str, Any] = {}
+    nodo_rec = nomina.find(_tag(NS_NOMINA12, "Receptor"))
+    if nodo_rec is not None:
+        empleado = {
+            "curp": nodo_rec.get("Curp"),
+            "num_seguridad_social": nodo_rec.get("NumSeguridadSocial"),
+            "fecha_inicio_rel_laboral": nodo_rec.get("FechaInicioRelLaboral"),
+            "antiguedad": nodo_rec.get("Antiguedad"),
+            "tipo_contrato": nodo_rec.get("TipoContrato"),
+            "sindicalizado": nodo_rec.get("Sindicalizado"),
+            "tipo_jornada": nodo_rec.get("TipoJornada"),
+            "tipo_regimen": nodo_rec.get("TipoRegimen"),
+            "num_empleado": nodo_rec.get("NumEmpleado"),
+            "departamento": nodo_rec.get("Departamento"),
+            "puesto": nodo_rec.get("Puesto"),
+            "riesgo_puesto": nodo_rec.get("RiesgoPuesto"),
+            "periodicidad_pago": nodo_rec.get("PeriodicidadPago"),
+            "banco": nodo_rec.get("Banco"),
+            "cuenta_bancaria": nodo_rec.get("CuentaBancaria"),
+            "salario_base_cot_apor": _num(nodo_rec.get("SalarioBaseCotApor")),
+            "salario_diario_integrado": _num(nodo_rec.get("SalarioDiarioIntegrado")),
+            "clave_ent_fed": nodo_rec.get("ClaveEntFed"),
+        }
+
     percepciones: list[dict[str, Any]] = []
     nodo_perc = nomina.find(_tag(NS_NOMINA12, "Percepciones"))
+    total_sueldos = total_gravado = total_exento = None
     if nodo_perc is not None:
+        total_sueldos = _num(nodo_perc.get("TotalSueldos"))
+        total_gravado = _num(nodo_perc.get("TotalGravado"))
+        total_exento = _num(nodo_perc.get("TotalExento"))
         for p in nodo_perc.findall(_tag(NS_NOMINA12, "Percepcion")):
-            percepciones.append({
+            item: dict[str, Any] = {
                 "tipo": p.get("TipoPercepcion"),
                 "clave": p.get("Clave"),
                 "concepto": p.get("Concepto"),
                 "gravado": _num(p.get("ImporteGravado")) or 0.0,
                 "exento": _num(p.get("ImporteExento")) or 0.0,
-            })
+            }
+            he = p.find(_tag(NS_NOMINA12, "HorasExtra"))
+            if he is not None:
+                item["horas_extra"] = {
+                    "dias": _num(he.get("Dias")),
+                    "tipo_horas": he.get("TipoHoras"),
+                    "horas_extra": _num(he.get("HorasExtra")),
+                    "importe_pagado": _num(he.get("ImportePagado")),
+                }
+            at = p.find(_tag(NS_NOMINA12, "AccionesOTitulos"))
+            if at is not None:
+                item["acciones_o_titulos"] = {
+                    "valor_mercado": _num(at.get("ValorMercado")),
+                    "precio_al_otorgarse": _num(at.get("PrecioAlOtorgarse")),
+                }
+            percepciones.append(item)
 
     deducciones: list[dict[str, Any]] = []
     nodo_ded = nomina.find(_tag(NS_NOMINA12, "Deducciones"))
+    total_otras_deducciones = total_impuestos_retenidos = None
     if nodo_ded is not None:
+        total_otras_deducciones = _num(nodo_ded.get("TotalOtrasDeducciones"))
+        total_impuestos_retenidos = _num(nodo_ded.get("TotalImpuestosRetenidos"))
         for d in nodo_ded.findall(_tag(NS_NOMINA12, "Deduccion")):
             deducciones.append({
                 "tipo": d.get("TipoDeduccion"),
@@ -77,7 +139,40 @@ def _extraer_nomina(complemento: Optional[ET.Element]) -> Optional[dict[str, Any
                 "importe": _num(d.get("Importe")) or 0.0,
             })
 
+    otros_pagos: list[dict[str, Any]] = []
+    nodo_op = nomina.find(_tag(NS_NOMINA12, "OtrosPagos"))
+    if nodo_op is not None:
+        for o in nodo_op.findall(_tag(NS_NOMINA12, "OtroPago")):
+            item_op: dict[str, Any] = {
+                "tipo": o.get("TipoOtroPago"),
+                "clave": o.get("Clave"),
+                "concepto": o.get("Concepto"),
+                "importe": _num(o.get("Importe")) or 0.0,
+            }
+            sub = o.find(_tag(NS_NOMINA12, "SubsidioAlEmpleo"))
+            if sub is not None:
+                item_op["subsidio_causado"] = _num(sub.get("SubsidioCausado"))
+            comp = o.find(_tag(NS_NOMINA12, "CompensacionSaldosAFavor"))
+            if comp is not None:
+                item_op["compensacion"] = {
+                    "saldo_a_favor": _num(comp.get("SaldoAFavor")),
+                    "anio": comp.get("Anio"),
+                    "remanente": _num(comp.get("RemanenteSalFav")),
+                }
+            otros_pagos.append(item_op)
+
+    incapacidades: list[dict[str, Any]] = []
+    nodo_inc = nomina.find(_tag(NS_NOMINA12, "Incapacidades"))
+    if nodo_inc is not None:
+        for i in nodo_inc.findall(_tag(NS_NOMINA12, "Incapacidad")):
+            incapacidades.append({
+                "dias": _num(i.get("DiasIncapacidad")),
+                "tipo": i.get("TipoIncapacidad"),
+                "importe": _num(i.get("ImporteMonetario")) or 0.0,
+            })
+
     return {
+        "tipo_nomina": nomina.get("TipoNomina"),
         "fecha_pago": nomina.get("FechaPago"),
         "fecha_inicial_pago": nomina.get("FechaInicialPago"),
         "fecha_final_pago": nomina.get("FechaFinalPago"),
@@ -86,8 +181,17 @@ def _extraer_nomina(complemento: Optional[ET.Element]) -> Optional[dict[str, Any
         "total_deducciones": total_deducciones,
         "total_otros_pagos": total_otros_pagos,
         "neto": neto,
+        "emisor_patron": emisor_patron,
+        "empleado": empleado,
+        "total_sueldos": total_sueldos,
+        "total_gravado": total_gravado,
+        "total_exento": total_exento,
+        "total_otras_deducciones": total_otras_deducciones,
+        "total_impuestos_retenidos": total_impuestos_retenidos,
         "percepciones": percepciones,
         "deducciones": deducciones,
+        "otros_pagos": otros_pagos,
+        "incapacidades": incapacidades,
     }
 
 

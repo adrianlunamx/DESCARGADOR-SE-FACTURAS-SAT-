@@ -188,6 +188,18 @@
     margin:20px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--azul-claro)}
   .nomina-box{background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--radio-sm);padding:16px;margin:12px 0}
   .nomina-box h4{margin:0 0 10px;color:#92400E;font-size:14px}
+  .mini-titulo{display:block;font-size:13px;font-weight:700;color:var(--azul);margin:18px 0 8px}
+  .tabla-nomina{width:100%;border-collapse:collapse;font-size:13px;margin:0 0 6px}
+  .tabla-nomina th,.tabla-nomina td{padding:8px 10px;border-bottom:1px solid var(--borde);text-align:left;vertical-align:top}
+  .tabla-nomina thead th{background:#F8FAFC;color:var(--gris);font-size:11.5px;text-transform:uppercase;letter-spacing:.3px}
+  .tabla-nomina .num{text-align:right;white-space:nowrap}
+  .tabla-nomina tfoot td{background:#F8FAFC;border-bottom:none;font-size:13.5px}
+  .tabla-nomina .subfila td{background:#FFFBEB;color:#92400E;font-size:12px;border-bottom:1px dashed #FCD34D}
+  .subfila-txt{font-size:11.5px;color:var(--gris);margin-top:3px}
+  .neto-box{margin:18px 0 6px;border:1px solid var(--borde);border-radius:var(--radio-sm);overflow:hidden}
+  .neto-fila{display:flex;justify-content:space-between;padding:9px 14px;font-size:13.5px;border-bottom:1px solid var(--borde)}
+  .neto-fila.resta{color:var(--err)}
+  .neto-total{display:flex;justify-content:space-between;padding:12px 14px;background:var(--azul);color:#fff;font-weight:700;font-size:16px}
   .nota-seg{font-size:12px;color:var(--gris);background:#F9FAFB;border:1px dashed var(--borde);
     border-radius:var(--radio-sm);padding:10px 14px;margin-top:12px}
   .copy-btn{border:1px solid var(--borde);background:#fff;border-radius:6px;font-size:11px;cursor:pointer;
@@ -596,26 +608,118 @@ async function verDetalle(uuid) {
        ${esc((f.serie||'')+(f.folio||'Sin folio'))}`;
     $('drawer-uuid').textContent = f.uuid;
 
+    /* Detalle completo de nómina: percepciones, deducciones, otros pagos,
+       incapacidades y datos del empleado / patrón desde el XML. */
+    const nominaHTML = (f) => {
+      const n = f.nomina_detalle || {};
+      const emp = n.empleado || {};
+      const pat = n.emisor_patron || {};
+      const tipoNom = n.tipo_nomina === 'E' ? 'Extraordinaria'
+        : n.tipo_nomina === 'O' ? 'Ordinaria' : (n.tipo_nomina || '—');
+      const periodo = (n.fecha_inicial_pago && n.fecha_final_pago)
+        ? `${esc(n.fecha_inicial_pago)} → ${esc(n.fecha_final_pago)}` : '—';
+      const kv = (et, v) => v ? `<dt>${et}</dt><dd>${esc(v)}</dd>` : '';
+
+      const percepciones = (n.percepciones?.length ? n.percepciones : (f.nomina_percepciones || []));
+      const deducciones = (n.deducciones?.length ? n.deducciones : (f.nomina_deducciones || []));
+      const otrosPagos = n.otros_pagos || f.nomina_otros_pagos || [];
+      const incaps = n.incapacidades || f.nomina_incapacidades || [];
+
+      const filasPerc = percepciones.map(p => {
+        const total = (Number(p.gravado) || 0) + (Number(p.exento) || 0);
+        let extra = '';
+        if (p.horas_extra) {
+          const he = p.horas_extra;
+          extra = `<tr class="subfila"><td colspan="4">⏱ Horas extra: ${he.dias ?? '—'} días · `
+            + `tipo ${esc(he.tipo_horas) || '—'} · ${he.horas_extra ?? '—'} h · ${fmt$(he.importe_pagado)}</td></tr>`;
+        }
+        return `<tr><td><span class="cod">${esc(p.clave) || ''}</span> ${esc(p.concepto) || '—'}</td>`
+          + `<td class="monto">${fmt$(p.gravado)}</td><td class="monto">${fmt$(p.exento)}</td>`
+          + `<td class="monto"><b>${fmt$(total)}</b></td></tr>${extra}`;
+      }).join('');
+
+      const filasDed = deducciones.map(d =>
+        `<tr><td><span class="cod">${esc(d.clave) || ''}</span> ${esc(d.concepto) || '—'}</td>`
+        + `<td class="monto">${fmt$(d.importe)}</td></tr>`).join('');
+
+      const filasOP = otrosPagos.map(o => {
+        const sub = o.subsidio_causado ? `<div class="subfila-txt">Subsidio causado: ${fmt$(o.subsidio_causado)}</div>` : '';
+        const comp = o.compensacion ? `<div class="subfila-txt">Compensación saldo a favor ${fmt$(o.compensacion.saldo_a_favor)} (${esc(o.compensacion.anio) || ''})</div>` : '';
+        return `<tr><td><span class="cod">${esc(o.clave) || ''}</span> ${esc(o.concepto) || '—'}${sub}${comp}</td>`
+          + `<td class="monto">${fmt$(o.importe)}</td></tr>`;
+      }).join('');
+
+      const filasInc = incaps.map(i =>
+        `<tr><td>Días: ${i.dias ?? '—'} · Tipo ${esc(i.tipo) || '—'}</td>`
+        + `<td class="monto">${fmt$(i.importe)}</td></tr>`).join('');
+
+      const totPerc = n.total_percepciones ?? f.nomina_total_percepciones;
+      const totDed = n.total_deducciones ?? f.nomina_total_deducciones;
+      const totOP = n.total_otros_pagos ?? otrosPagos.reduce((a, o) => a + (Number(o.importe) || 0), 0);
+      const neto = n.neto ?? f.nomina_neto;
+
+      return `<div class="sec-titulo">🧾 Nómina — recibo de pago</div>
+      <div class="nomina-box">
+        <h4>${esc(f.emisor_nombre) || '—'} <span class="cod">${esc(f.emisor_rfc) || ''}</span></h4>
+        <dl class="kv">
+          <dt>Periodo</dt><dd>${periodo}</dd>
+          <dt>Fecha de pago</dt><dd>${esc(n.fecha_pago || f.nomina_fecha_pago) || '—'}</dd>
+          <dt>Días pagados</dt><dd>${n.dias_pagados ?? f.nomina_dias_pagados ?? '—'}</dd>
+          <dt>Tipo de nómina</dt><dd>${tipoNom}</dd>
+          ${pat.registro_patronal ? `<dt>Registro patronal</dt><dd class="cod">${esc(pat.registro_patronal)}</dd>` : ''}
+        </dl>
+      </div>
+
+      <b class="mini-titulo">👤 Empleado</b>
+      <dl class="kv">
+        <dt>Nombre</dt><dd>${esc(f.receptor_nombre) || '—'}</dd>
+        ${kv('No. empleado', emp.num_empleado)}
+        ${kv('Puesto', emp.puesto)}
+        ${kv('Departamento', emp.departamento)}
+        ${kv('CURP', emp.curp)}
+        ${kv('NSS', emp.num_seguridad_social)}
+        ${kv('Antigüedad', emp.antiguedad)}
+        ${kv('Inicio relación laboral', emp.fecha_inicio_rel_laboral)}
+        ${emp.salario_diario_integrado ? `<dt>Salario diario integrado</dt><dd>${fmt$(emp.salario_diario_integrado)}</dd>` : ''}
+        ${emp.salario_base_cot_apor ? `<dt>Salario base cotización</dt><dd>${fmt$(emp.salario_base_cot_apor)}</dd>` : ''}
+        ${kv('Periodicidad de pago', emp.periodicidad_pago)}
+        ${kv('Tipo de contrato', emp.tipo_contrato)}
+        ${kv('Tipo de jornada', emp.tipo_jornada)}
+        ${kv('Régimen', emp.tipo_regimen)}
+        ${emp.banco ? `<dt>Banco / cuenta</dt><dd>${esc(emp.banco)} ${esc(emp.cuenta_bancaria) || ''}</dd>` : ''}
+      </dl>
+
+      ${filasPerc ? `<b class="mini-titulo">💰 Percepciones (${percepciones.length})</b>
+      <table class="tabla-nomina"><thead><tr><th>Concepto</th>
+        <th class="num">Gravado</th><th class="num">Exento</th><th class="num">Total</th></tr></thead>
+      <tbody>${filasPerc}</tbody>
+      <tfoot><tr><td>Total percepciones</td><td colspan="3" class="num"><b>${fmt$(totPerc)}</b></td></tr></tfoot></table>` : ''}
+
+      ${filasDed ? `<b class="mini-titulo">🧾 Deducciones (${deducciones.length})</b>
+      <table class="tabla-nomina"><thead><tr><th>Concepto</th><th class="num">Importe</th></tr></thead>
+      <tbody>${filasDed}</tbody>
+      <tfoot><tr><td>Total deducciones</td><td class="num"><b>${fmt$(totDed)}</b></td></tr></tfoot></table>` : ''}
+
+      ${filasOP ? `<b class="mini-titulo">➕ Otros pagos (${otrosPagos.length})</b>
+      <table class="tabla-nomina"><thead><tr><th>Concepto</th><th class="num">Importe</th></tr></thead>
+      <tbody>${filasOP}</tbody>
+      <tfoot><tr><td>Total otros pagos</td><td class="num"><b>${fmt$(totOP)}</b></td></tr></tfoot></table>` : ''}
+
+      ${filasInc ? `<b class="mini-titulo">🏥 Incapacidades (${incaps.length})</b>
+      <table class="tabla-nomina"><thead><tr><th>Detalle</th><th class="num">Importe</th></tr></thead>
+      <tbody>${filasInc}</tbody></table>` : ''}
+
+      <div class="neto-box">
+        <div class="neto-fila"><span>Percepciones</span><span>${fmt$(totPerc)}</span></div>
+        ${totOP ? `<div class="neto-fila"><span>Otros pagos</span><span>${fmt$(totOP)}</span></div>` : ''}
+        <div class="neto-fila resta"><span>(−) Deducciones</span><span>${fmt$(totDed)}</span></div>
+        <div class="neto-total"><span>Neto pagado</span><span>${fmt$(neto)}</span></div>
+      </div>`;
+    };
+
     let nominaHtml = '';
     if (esNomina) {
-      const perc = (f.nomina_percepciones || []).map(p =>
-        `<tr><td>${esc(p.concepto)||'—'}</td><td class="monto">${fmt$(p.gravado)}</td><td class="monto">${fmt$(p.exento)}</td></tr>`).join('');
-      const ded = (f.nomina_deducciones || []).map(d =>
-        `<tr><td>${esc(d.concepto)||'—'}</td><td class="monto">${fmt$(d.importe)}</td></tr>`).join('');
-      nominaHtml = `<div class="sec-titulo">🧾 Nómina</div>
-        <div class="nomina-box"><dl class="kv">
-          <dt>Fecha de pago</dt><dd>${esc(f.nomina_fecha_pago)||'—'}</dd>
-          <dt>Días pagados</dt><dd>${f.nomina_dias_pagados ?? '—'}</dd>
-          <dt>Total percepciones</dt><dd>${fmt$(f.nomina_total_percepciones)}</dd>
-          <dt>Total deducciones</dt><dd>${fmt$(f.nomina_total_deducciones)}</dd>
-          <dt><b>Neto pagado</b></dt><dd><b>${fmt$(f.nomina_neto)}</b></dd>
-        </dl></div>
-        ${perc ? `<b style="font-size:13px">Percepciones</b>
-        <table><thead><tr><th>Concepto</th><th style="text-align:right">Gravado</th><th style="text-align:right">Exento</th></tr></thead>
-        <tbody>${perc}</tbody></table>` : ''}
-        ${ded ? `<b style="font-size:13px">Deducciones</b>
-        <table><thead><tr><th>Concepto</th><th style="text-align:right">Importe</th></tr></thead>
-        <tbody>${ded}</tbody></table>` : ''}`;
+      nominaHtml = nominaHTML(f);
     }
 
     const conceptos = (f.conceptos||[]).map(c =>

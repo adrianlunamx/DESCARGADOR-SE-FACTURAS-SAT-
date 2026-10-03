@@ -20,8 +20,8 @@ Todo queda en tu computadora: base de datos SQLite, los XML descargados y la app
 - ✓ **Auto-refresh**: las solicitudes en proceso se revisan solas cada 3 segundos
 - ✓ La tabla de solicitudes **muestra el motivo del SAT** (código + mensaje) cuando algo falla
 - ✓ Visor con filtros (tipo, fechas, RFC, texto libre, montos), paginación y chips por flujo
-- ✓ Detalle de factura en panel lateral: conceptos, impuestos, sección dedicada de nómina (percepciones, deducciones, neto)
-- ✓ Descarga individual de **XML** y **PDF** (representación impresa con QR oficial de verificación)
+- ✓ Detalle de factura en panel lateral: conceptos, impuestos y recibo de nómina completo (percepciones con horas extra, deducciones, otros pagos, incapacidades, datos del empleado y del patrón, neto pagado)
+- ✓ Descarga individual de **XML** y **PDF** (recibo de nómina con formato profesional o representación impresa con QR oficial de verificación)
 - ✓ Exportación masiva en **ZIP** con los filtros aplicados
 - ✓ Importación manual de XML (útil sin e.firma o para XML descargados del portal)
 - ✓ **Seguridad**: tu e.firma vive solo en memoria RAM, expira a los 30 min y nunca toca el disco
