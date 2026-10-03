@@ -39,6 +39,81 @@ VERDE = colors.HexColor("#047857")
 IMPUESTOS = {"001": "ISR", "002": "IVA", "003": "IEPS"}
 
 
+# ---------- Número a letra (español, formato mexicano) ----------
+_UNI = ["", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete",
+        "ocho", "nueve", "diez", "once", "doce", "trece", "catorce",
+        "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve",
+        "veinte"]
+_DEC = ["", "", "", "treinta", "cuarenta", "cincuenta", "sesenta",
+        "setenta", "ochenta", "noventa"]
+_CEN = ["", "ciento", "doscientos", "trescientos", "cuatrocientos",
+        "quinientos", "seiscientos", "setecientos", "ochocientos",
+        "novecientos"]
+
+
+def _tres_cifras(n: int) -> str:
+    c, r = divmod(n, 100)
+    d, u = divmod(r, 10)
+    partes: list[str] = []
+    if c:
+        partes.append("cien" if n == 100 else _CEN[c])
+    if r:
+        if r <= 20:
+            partes.append(_UNI[r])
+        elif r < 30:
+            partes.append("veinti" + _UNI[u])
+        else:
+            base = _DEC[d]
+            partes.append(f"{base} y {_UNI[u]}" if u else base)
+    return " ".join(p for p in partes if p)
+
+
+def _entero_a_letras(n: int) -> str:
+    if n == 0:
+        return "cero"
+    if n == 100:
+        return "cien"
+    partes: list[str] = []
+    millones, r = divmod(n, 1_000_000)
+    miles, resto = divmod(r, 1_000)
+    if millones:
+        partes.append("un millón" if millones == 1
+                      else f"{_entero_a_letras(millones)} millones")
+    if miles:
+        partes.append("mil" if miles == 1 else f"{_tres_cifras(miles)} mil")
+    if resto:
+        partes.append(_tres_cifras(resto))
+    return " ".join(partes)
+
+
+def numero_a_letras(valor: Optional[float]) -> str:
+    """Convierte un monto a letra estilo 'mil doscientos pesos 34/100 M.N.'."""
+    if valor is None:
+        return "—"
+    entero = int(valor)
+    centavos = int(round((valor - entero) * 100))
+    letras = _entero_a_letras(entero)
+    texto = f"{letras} pesos {centavos:02d}/100 M.N."
+    return texto[0].upper() + texto[1:]
+
+
+def _pie(canvas, doc) -> None:
+    """Pie de página: numeración y fecha de generación."""
+    from datetime import datetime
+    canvas.saveState()
+    canvas.setFont("Helvetica", 7)
+    canvas.setFillColor(GRIS)
+    canvas.drawCentredString(
+        letter[0] / 2, 11 * mm,
+        f"Página {doc.page}  ·  Generado el "
+        f"{datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    # Línea dorada sutil sobre el pie
+    canvas.setStrokeColor(DORADO)
+    canvas.setLineWidth(0.6)
+    canvas.line(15 * mm, 14 * mm, letter[0] - 15 * mm, 14 * mm)
+    canvas.restoreState()
+
+
 def _qr_verificacion(uuid: str, rfc_emisor: str, rfc_receptor: str,
                      total: Optional[float], sello_cfd: Optional[str]) -> str:
     """Arma la URL de verificación del SAT para el código QR.
@@ -87,16 +162,22 @@ def _encabezado(factura: dict[str, Any], e: dict[str, ParagraphStyle]) -> Table:
     titulo = "RECIBO DE NÓMINA" if factura.get("tipo_comprobante") == "N" else f"CFDI — {tipo}"
     datos = [
         [Paragraph(titulo, e["titulo"])],
+        [Paragraph("COMPROBANTE FISCAL DIGITAL POR INTERNET", ParagraphStyle(
+            "cfdi", parent=e["subtitulo"], fontSize=7.5, textColor=colors.HexColor("#FBBF24"),
+            fontName="Helvetica-Bold", leading=10))],
         [Paragraph(f"Folio {folio} &nbsp;·&nbsp; UUID {factura.get('uuid') or '—'}",
                    e["subtitulo"])],
     ]
     t = Table(datos, colWidths=[180 * mm])
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), AZUL),
+        ("LINEBELOW", (0, 0), (-1, 0), 1.2, DORADO),
         ("LEFTPADDING", (0, 0), (-1, -1), 6 * mm),
         ("RIGHTPADDING", (0, 0), (-1, -1), 6 * mm),
         ("TOPPADDING", (0, 0), (-1, 0), 5 * mm),
         ("BOTTOMPADDING", (0, -1), (-1, -1), 5 * mm),
+        ("BOTTOMPADDING", (0, 1), (-1, 1), 0),
+        ("TOPPADDING", (0, 2), (-1, 2), 1 * mm),
         ("ROUNDEDCORNERS", [3 * mm, 3 * mm, 3 * mm, 3 * mm]),
     ]))
     return t
@@ -347,7 +428,11 @@ def _seccion_nomina(factura: dict[str, Any], e: dict[str, ParagraphStyle]) -> li
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3 * mm),
         ("ROUNDEDCORNERS", [2 * mm, 2 * mm, 2 * mm, 2 * mm]),
     ]))
-    el += [neto_tabla, Spacer(1, 4 * mm)]
+    el += [neto_tabla, Spacer(1, 2 * mm)]
+    el.append(Paragraph(f"<i>({numero_a_letras(neto)})</i>",
+                        ParagraphStyle("letras", parent=e["chico"], alignment=1,
+                                       spaceAfter=2 * mm)))
+    el.append(Spacer(1, 2 * mm))
     return el
 
 
@@ -401,7 +486,10 @@ def _seccion_factura_general(factura: dict[str, Any], e: dict[str, ParagraphStyl
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]))
-    el += [tt, Spacer(1, 5 * mm)]
+    el.append(tt)
+    el.append(Paragraph(f"<i>({numero_a_letras(factura.get('total'))})</i>",
+                        ParagraphStyle("letras", parent=e["chico"], alignment=2,
+                                       spaceBefore=1 * mm, spaceAfter=4 * mm)))
     return el
 
 
@@ -446,5 +534,5 @@ def generar_pdf(factura: dict[str, Any]) -> bytes:
         ], colWidths=[40 * mm, 130 * mm]),
     ]
 
-    doc.build(elementos)
+    doc.build(elementos, onFirstPage=_pie, onLaterPages=_pie)
     return buf.getvalue()
